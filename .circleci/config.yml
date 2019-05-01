@@ -56,10 +56,10 @@ apply_job: &apply_job
           cd ../accounts/subaccounts/sandbox
           terraform apply --auto-approve ./terraform.plan
 jobs:
-  # build:
-  #   <<: *default_config
-  #   steps:
-  #     - checkout
+  build:
+    <<: *default_config
+    steps:
+      - checkout
   #     - run:
   #         name: terraform fmt
   #         command: |
@@ -74,7 +74,7 @@ jobs:
   #             echo "Please run terraform fmt"
   #             exit 1
   #           fi
-  #     - *save_repo
+      - *save_repo
 
   plan:
     <<: *default_config
