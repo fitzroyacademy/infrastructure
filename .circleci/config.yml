@@ -12,8 +12,6 @@ default_config: &default_config
   docker:
     - image: *base_image
   working_directory: *working_directory
-  environment:
-    BASH_ENV: /root/.bashrc
 
 repo_cache_key: &repo_cache_key
   v1-repo-{{ .Branch }}-{{ .Revision }}
@@ -33,8 +31,6 @@ terraform_init: &terraform_init
   run:
     name: terraform init
     command: |
-      pwd
-      ls -la
       cd ./accounts/fitzroy
       terraform init
       cd ../subaccounts/sandbox
@@ -49,8 +45,6 @@ apply_job: &apply_job
     - run:
         name: terraform apply
         command: |
-          pwd
-          ls -la
           cd ./accounts/fitzroy
           terraform apply --auto-approve ./terraform.plan
           cd ../subaccounts/sandbox
@@ -84,9 +78,6 @@ jobs:
       - run:
           name: terraform plan
           command: |
-            pwd
-            ls -la
-            source $BASH_ENV
             cd ./accounts/fitzroy
             terraform plan -out=./terraform.plan
             cd ../subaccounts/sandbox
