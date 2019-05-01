@@ -33,6 +33,8 @@ terraform_init: &terraform_init
   run:
     name: terraform init
     command: |
+      pwd
+      ls -la
       cd ./accounts/fitzroy
       terraform init
       cd ../accounts/subaccounts/sandbox
@@ -47,6 +49,8 @@ apply_job: &apply_job
     - run:
         name: terraform apply
         command: |
+          pwd
+          ls -la
           cd ./accounts/fitzroy
           terraform apply --auto-approve ./terraform.plan
           cd ../accounts/subaccounts/sandbox
@@ -80,6 +84,8 @@ jobs:
       - run:
           name: terraform plan
           command: |
+            pwd
+            ls -la
             source $BASH_ENV
             cd ./accounts/fitzroy
             terraform plan -out=./terraform.plan
