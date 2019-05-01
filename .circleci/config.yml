@@ -107,7 +107,10 @@ workflows:
   version: 2
   plan_approve_apply:
     jobs:
-      - plan
+      - build
+      - plan:
+          requires:
+            - build
       - approve:
           type: approval
           requires:
