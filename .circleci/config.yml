@@ -82,7 +82,6 @@ jobs:
             terraform plan -out=./terraform.plan
             cd ../subaccounts/sandbox
             terraform plan -out=./terraform.plan
-            popd
       - persist_to_workspace:
           root: *working_directory
           paths:
