@@ -109,6 +109,7 @@ workflows:
     jobs:
       - build
       - plan:
+          context: fitzroy-terraform
           requires:
             - build
       - approve:
@@ -119,12 +120,14 @@ workflows:
             branches:
               only: master
       - apply-with-approval:
+          context: fitzroy-terraform
           requires:
             - approve
           filters:
             branches:
               only: master
       - apply:
+          context: fitzroy-terraform
           requires:
             - plan
           filters:
