@@ -79,11 +79,8 @@ workflows:
   version: 2
   plan_approve_apply:
     jobs:
-      - build
       - plan:
           context: fitzroy-terraform
-          requires:
-            - build
       - approve:
           type: approval
           requires:
