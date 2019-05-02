@@ -1,8 +1,8 @@
 # main.tf
 locals {
   administrator_cross_account_role_policy_arns = ["arn:aws:iam::aws:policy/AdministratorAccess"]
-  terraform_cross_account_role_policy_arns = ["arn:aws:iam::aws:policy/IAMFullAccess", "arn:aws:iam::aws:policy/ReadOnlyAccess",
-  "arn:aws:iam::aws:policy/CloudFrontFullAccess"]
+
+  terraform_cross_account_role_policy_arns = ["arn:aws:iam::aws:policy/IAMFullAccess", "arn:aws:iam::aws:policy/ReadOnlyAccess"]
 }
 
 data "aws_iam_policy_document" "cross_account_assume_role_policy" {
