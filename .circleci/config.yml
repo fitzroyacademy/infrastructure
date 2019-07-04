@@ -67,8 +67,8 @@ jobs:
       - persist_to_workspace:
           root: *working_directory
           paths:
-            - ./accounts/fitzroy/terraform.plan
-            - ./accounts/subaccounts/*/terraform.plan
+            - ./accounts/*
+
 
   apply:
     <<: *apply_job
