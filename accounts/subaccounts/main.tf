@@ -38,3 +38,6 @@ module "cross_account_config" {
 resource "aws_ecr_repository" "fitzroy-docker-image-repo" {
   name = "${var.account_name}-repo"
 }
+
+resource "null_resource" "test" {
+}
