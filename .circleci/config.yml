@@ -72,6 +72,11 @@ jobs:
           paths:
             - ./accounts/*
 
+  notify:
+    <<: *default_config
+    steps:
+      - slack/notify:
+          message: Terraform apply is pending approval.
 
   apply:
     <<: *apply_job
@@ -84,8 +89,12 @@ workflows:
     jobs:
       - plan:
           context: fitzroy-terraform
-      - slack:
-          message: Terraform apply is pending approval.
+      - notify:
+          requires:
+            - plan
+          filters:
+            branches:
+              only: master
       - approve:
           type: approval
           requires:
