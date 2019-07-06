@@ -72,13 +72,6 @@ jobs:
           paths:
             - ./accounts/*
 
-  notify:
-    docker:
-    - image: spotify/alpine:latest
-    steps:
-      - slack/notify:
-          message: Terraform apply is pending approval.
-
   apply:
     <<: *apply_job
   apply-with-approval:
@@ -90,12 +83,8 @@ workflows:
     jobs:
       - plan:
           context: fitzroy-terraform
-      - notify:
-          requires:
-            - plan
-          filters:
-            branches:
-              only: master
+      - slack/approval-notification:
+          message: Terraform apply in the Infrastructure is awaiting approval.
       - approve:
           type: approval
           requires:
