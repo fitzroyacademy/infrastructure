@@ -65,6 +65,12 @@ data "aws_iam_policy_document" "circleci_permissions" {
     actions = ["ecr:PutImage"]
     resources = ["arn:aws:ecr:*:${var.account_number}:repository/${var.account_name}-repo"]
   }
+
+  statement {
+    effect = "Allow"
+    actions = ["ecr:GetAuthorizationToken"]
+    resources = ["*"]
+  }
 }
 
 resource "aws_iam_role_policy" "ci_policy" {
