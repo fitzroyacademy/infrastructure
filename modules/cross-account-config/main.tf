@@ -68,7 +68,7 @@ data "aws_iam_policy_document" "circleci_permissions" {
 
   statement {
     effect = "Allow"
-    actions = ["ecr:GetAuthorizationToken"]
+    actions = ["ecr:GetAuthorizationToken", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload","ecr:BatchCheckLayerAvailability","ecr:BatchGetImage"]
     resources = ["*"]
   }
 }
