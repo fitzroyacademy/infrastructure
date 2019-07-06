@@ -36,14 +36,6 @@ module "cross_account_config" {
   account_name        = "${var.account_name}"
 }
 
-resource "aws_ecr_repository" "fitzroy-docker-image-repo" {
-  name = "${var.account_name}-repo"
-}
-
-resource "aws_ecs_cluster" "web-app-cluster" {
-  name = "${var.account_name}-web-app-cluster"
-}
-
 # resource "aws_ecs_task_definition" "web-app-service" {
 #   family                = "web-app-service"
 #   requires_compatibilities = "FARGATE"

@@ -79,3 +79,11 @@ resource "aws_iam_role_policy" "ci_policy" {
 
   policy = "${data.aws_iam_policy_document.circleci_permissions.json}"
 }
+
+resource "aws_ecr_repository" "fitzroy-docker-image-repo" {
+  name = "${var.account_name}-repo"
+}
+
+resource "aws_ecs_cluster" "web-app-cluster" {
+  name = "${var.account_name}-web-app-cluster"
+}
