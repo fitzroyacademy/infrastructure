@@ -74,7 +74,7 @@ jobs:
 
   notify:
     docker:
-    - image: spotify/docker-alpine:latest
+    - image: spotify/alpine:latest
     steps:
       - slack/notify:
           message: Terraform apply is pending approval.
