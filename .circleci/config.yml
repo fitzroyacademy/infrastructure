@@ -74,7 +74,7 @@ jobs:
 
   notify:
     docker:
-    - image: ubuntu-1604:201903-01
+    - image: frolvlad/alpine-bash:latest
     steps:
       - slack/notify:
           message: Terraform apply is pending approval.
