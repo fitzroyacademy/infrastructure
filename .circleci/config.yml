@@ -73,7 +73,8 @@ jobs:
             - ./accounts/*
 
   notify:
-    <<: *default_config
+    docker:
+    - image: ubuntu-1604:201903-01
     steps:
       - slack/notify:
           message: Terraform apply is pending approval.
