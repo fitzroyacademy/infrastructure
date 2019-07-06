@@ -1,4 +1,7 @@
-version: 2
+version: 2.1
+
+orbs:
+  slack: rmacklin/slack@1.1.0
 
 references:
 
@@ -81,6 +84,8 @@ workflows:
     jobs:
       - plan:
           context: fitzroy-terraform
+      - slack/approval-notification:
+          message: Terraform apply is pending approval
       - approve:
           type: approval
           requires:

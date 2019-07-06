@@ -63,7 +63,7 @@ data "aws_iam_policy_document" "circleci_permissions" {
   statement {
     effect = "Allow"
     actions = ["ecr:PutImage"]
-    resources = ["arn:aws:ecr:*:repository/${var.account_name}-repo"]
+    resources = ["arn:aws:ecr:*:${var.account_number}:repository/${var.account_name}-repo"]
   }
 }
 
