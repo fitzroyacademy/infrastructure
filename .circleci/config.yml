@@ -85,6 +85,11 @@ workflows:
           context: fitzroy-terraform
       - slack/approval-notification:
           message: Terraform apply in the Infrastructure is awaiting approval.
+          requires:
+            - plan
+          filters:
+            branches:
+              only: master
       - approve:
           type: approval
           requires:
