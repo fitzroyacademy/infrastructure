@@ -1,7 +1,6 @@
 # main.tf
 locals {
   administrator_cross_account_role_policy_arns = ["arn:aws:iam::aws:policy/AdministratorAccess"]
-
   terraform_cross_account_role_policy_arns = ["arn:aws:iam::aws:policy/IAMFullAccess", "arn:aws:iam::aws:policy/ReadOnlyAccess"]
 }
 
@@ -40,4 +39,37 @@ resource "aws_iam_role_policy_attachment" "cross_account_administrator" {
 
   role       = "${aws_iam_role.cross_account_administrator.name}"
   policy_arn = "${element(local.administrator_cross_account_role_policy_arns, count.index)}"
+}
+
+resource "aws_iam_role" "circleci_cross_account_assume_role" {
+  name               = "CircleCICrossAccountRole"
+  assume_role_policy = "${data.aws_iam_policy_document.circleci_cross_account_assume_role_policy.json}"
+}
+
+data "aws_iam_policy_document" "circleci_cross_account_assume_role_policy" {
+  statement {
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["arn:aws:iam::${var.main_account_number}:user/circleci"]
+    }
+
+    actions = ["sts:AssumeRole"]
+  }
+}
+
+data "aws_iam_policy_document" "circleci_permissions" {
+  statement {
+    effect = "Allow"
+    actions = ["ecr:PutImage"]
+    resources = ["arn:aws:ecr:*:repository/${var.account_name}-repo"]
+  }
+}
+
+resource "aws_iam_role_policy" "ci_policy" {
+  name = "circleci_role_policy"
+  role = "${aws_iam_role.circleci_cross_account_assume_role.id}"
+
+  policy = "${data.aws_iam_policy_document.circleci_permissions.json}"
 }
