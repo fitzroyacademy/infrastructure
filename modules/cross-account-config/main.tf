@@ -63,7 +63,7 @@ data "aws_iam_policy_document" "circleci_permissions" {
   statement {
     effect = "Allow"
     actions = ["ecr:PutImage"]
-    resources = ["arn:aws:ecr:*:${var.account_number}:repository/web-app"]
+    resources = ["arn:aws:ecr:*:${var.account_number}:repository/fitzroy-academy/web-app"]
   }
 
   statement {
@@ -81,7 +81,7 @@ resource "aws_iam_role_policy" "ci_policy" {
 }
 
 resource "aws_ecr_repository" "fitzroy-docker-image-repo" {
-  name = "web-app"
+  name = "fitzroy-academy/web-app"
 }
 
 resource "aws_ecs_cluster" "web-app-cluster" {
