@@ -35,11 +35,3 @@ module "cross_account_config" {
   account_number      = "${var.account_number}"
   account_name        = "${var.account_name}"
 }
-
-# resource "aws_ecs_task_definition" "web-app-service" {
-#   family                = "web-app-service"
-#   requires_compatibilities = "FARGATE"
-
-#   cpu = 1
-#   memory = 32
-# }
