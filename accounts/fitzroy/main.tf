@@ -1,5 +1,5 @@
 provider "aws" {
-  region                  = "${var.region}"
+  region                  = var.region
   profile                 = "fitzroy-terraform-administrator"
   shared_credentials_file = "~/.aws/credentials"
 }
@@ -29,7 +29,7 @@ resource "aws_s3_bucket" "terraform_state" {
     }
   }
 
-  tags {
+  tags = {
     cost-center = "aws-management"
   }
 }
@@ -50,7 +50,7 @@ resource "aws_s3_bucket" "cloudtrail_logs" {
     }
   }
 
-  tags {
+  tags = {
     cost-center = "aws-management"
   }
 }
@@ -71,7 +71,7 @@ resource "aws_s3_bucket" "config" {
     }
   }
 
-  tags {
+  tags = {
     cost-center = "aws-management"
   }
 }
@@ -91,14 +91,14 @@ resource "aws_dynamodb_table" "terraform_state_lock" {
     prevent_destroy = true
   }
 
-  tags {
+  tags = {
     cost-center = "aws-management"
   }
 }
 
 resource "aws_cloudtrail" "organization_trail" {
   name                          = "cloudtrail-all-regions"
-  s3_bucket_name                = "${aws_s3_bucket.cloudtrail_logs.bucket}"
+  s3_bucket_name                = aws_s3_bucket.cloudtrail_logs.bucket
   include_global_service_events = true
   is_organization_trail         = true
   is_multi_region_trail         = true
@@ -124,7 +124,7 @@ resource "aws_cloudtrail" "organization_trail" {
     }
   }
 
-  tags {
+  tags = {
     cost-center = "aws-management"
   }
 
@@ -132,7 +132,7 @@ resource "aws_cloudtrail" "organization_trail" {
 }
 
 resource "aws_s3_bucket_policy" "cloudtrail_bucket_policy" {
-  bucket = "${aws_s3_bucket.cloudtrail_logs.bucket}"
+  bucket = aws_s3_bucket.cloudtrail_logs.bucket
 
   policy = <<POLICY
 {
@@ -185,52 +185,54 @@ resource "aws_s3_bucket_policy" "cloudtrail_bucket_policy" {
     ]
 }
 POLICY
+
 }
 
 resource "aws_config_configuration_recorder_status" "main" {
-  name       = "aws-config"
+  name = "aws-config"
   is_enabled = true
-  depends_on = ["aws_config_delivery_channel.main"]
+  depends_on = [aws_config_delivery_channel.main]
 }
 
 resource "aws_config_delivery_channel" "main" {
-  name           = "aws-config"
-  s3_bucket_name = "${aws_s3_bucket.config.bucket}"
-  s3_key_prefix  = ""
+  name = "aws-config"
+  s3_bucket_name = aws_s3_bucket.config.bucket
+  s3_key_prefix = ""
 
-  snapshot_delivery_properties = {
+  snapshot_delivery_properties {
     delivery_frequency = "Six_Hours"
   }
 
-  depends_on = ["aws_config_configuration_recorder.main"]
+  depends_on = [aws_config_configuration_recorder.main]
 }
 
 resource "aws_config_configuration_recorder" "main" {
-  name     = "aws-config"
-  role_arn = "${aws_iam_role.main.arn}"
+  name = "aws-config"
+  role_arn = aws_iam_role.main.arn
 
-  recording_group = {
-    all_supported                 = true
+  recording_group {
+    all_supported = true
     include_global_resource_types = true
   }
 }
 
-data "aws_caller_identity" "current" {}
+data "aws_caller_identity" "current" {
+}
 
 data "aws_iam_policy_document" "aws-config-policy" {
   statement {
-    actions   = ["s3:PutObject*"]
+    actions = ["s3:PutObject*"]
     resources = ["arn:aws:s3:::${aws_s3_bucket.config.bucket}/AWSLogs/${data.aws_caller_identity.current.account_id}/*"]
 
     condition {
-      test     = "StringLike"
+      test = "StringLike"
       variable = "s3:x-amz-acl"
-      values   = ["bucket-owner-full-control"]
+      values = ["bucket-owner-full-control"]
     }
   }
 
   statement {
-    actions   = ["s3:GetBucketAcl"]
+    actions = ["s3:GetBucketAcl"]
     resources = ["arn:aws:s3:::${aws_s3_bucket.config.bucket}"]
   }
 }
@@ -241,7 +243,7 @@ data "aws_iam_policy_document" "aws-config-role-policy" {
     actions = ["sts:AssumeRole"]
 
     principals {
-      type        = "Service"
+      type = "Service"
       identifiers = ["config.amazonaws.com"]
     }
 
@@ -256,22 +258,23 @@ data "aws_iam_policy_document" "aws-config-role-policy" {
 resource "aws_iam_role" "main" {
   name = "aws-config-role"
 
-  assume_role_policy = "${data.aws_iam_policy_document.aws-config-role-policy.json}"
+  assume_role_policy = data.aws_iam_policy_document.aws-config-role-policy.json
 }
 
 resource "aws_iam_policy_attachment" "managed-policy" {
-  name       = "aws-config-managed-policy"
-  roles      = ["${aws_iam_role.main.name}"]
+  name = "aws-config-managed-policy"
+  roles = [aws_iam_role.main.name]
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSConfigRole"
 }
 
 resource "aws_iam_policy" "aws-config-policy" {
-  name   = "aws-config-policy"
-  policy = "${data.aws_iam_policy_document.aws-config-policy.json}"
+  name = "aws-config-policy"
+  policy = data.aws_iam_policy_document.aws-config-policy.json
 }
 
 resource "aws_iam_policy_attachment" "aws-config-policy" {
-  name       = "aws-config-policy"
-  roles      = ["${aws_iam_role.main.name}"]
-  policy_arn = "${aws_iam_policy.aws-config-policy.arn}"
+  name = "aws-config-policy"
+  roles = [aws_iam_role.main.name]
+  policy_arn = aws_iam_policy.aws-config-policy.arn
 }
+
