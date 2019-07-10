@@ -326,20 +326,38 @@ resource "aws_lb_listener" "web_app_public" {
   }
 }
 
-# resource "aws_db_instance" "stage_db" {
-#   allocated_storage    = 20
-#   storage_type         = "gp2"
-#   engine               = "postgres"
-#   engine_version       = "10.6-R1"
-#   instance_class       = "db.t2.small"
-#   name                 = "web-app-stage"
-#   identifier = "web-app-stage"
-#   username             = "fitzroyacademy"
-#   multi_az = false
-#   password = jsondecode(aws_secretsmanager_secret_version.stage-password.secret_string)["key1"]
-#   parameter_group_name = "default.postgres10.6"
-#   db_subnet_group_name  = "${aws_db_subnet_group.web-app.name}"
-# }
+resource "aws_db_instance" "stage_db" {
+  allocated_storage    = 20
+  storage_type         = "gp2"
+  engine               = "postgres"
+  engine_version       = "10.6"
+  instance_class       = "db.t2.micro"
+  name                 = "stagewebapp"
+  identifier = "stagewebapp"
+  username             = "fitzroyacademy"
+  multi_az = false
+  password = jsondecode(aws_secretsmanager_secret_version.stage-password.secret_string)["password"]
+  parameter_group_name = "default.postgres10"
+  db_subnet_group_name  = aws_db_subnet_group.web-app.name
+}
+
+resource "aws_route53_zone" "ops" {
+  name = "ops.fitzroyacademy.net"
+
+  vpc {
+    vpc_id = "${module.vpc.vpc_id}"
+  }
+}
+
+resource "aws_route53_record" "stage-db" {
+  zone_id = "${aws_route53_zone.ops.zone_id}"
+  name    = "db.stage.ops.fitzroyacademy.net"
+  type    = "A"
+  alias {
+    name                   = "${aws_db_instance.stage_db.endpoint}"
+  }
+}
+
 
 resource "aws_db_subnet_group" "web-app" {
   name       = "web_app"
