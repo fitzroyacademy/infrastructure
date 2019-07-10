@@ -1,5 +1,5 @@
 provider "aws" {
-  region                  = "${var.region}"
+  region                  = var.region
   profile                 = "fitzroy-terraform-administrator"
   shared_credentials_file = "~/.aws/credentials"
 }
@@ -7,7 +7,7 @@ provider "aws" {
 data "terraform_remote_state" "main_state" {
   backend = "s3"
 
-  config {
+  config = {
     bucket = "fitzroy-terraform-state"
     key    = "fitzroy/"
     region = "us-east-2"
@@ -15,7 +15,7 @@ data "terraform_remote_state" "main_state" {
 }
 
 provider "aws" {
-  region = "${var.region}"
+  region = var.region
   alias  = "subaccount"
 
   assume_role {
@@ -27,11 +27,12 @@ provider "aws" {
 module "cross_account_config" {
   source = "../../../modules/cross-account-config"
 
-  providers {
-    aws = "aws.subaccount"
+  providers = {
+    aws = aws.subaccount
   }
 
-  main_account_number = "${data.terraform_remote_state.main_state.account_number}"
-  account_number      = "${var.account_number}"
-  account_name        = "${var.account_name}"
+  main_account_number = data.terraform_remote_state.main_state.outputs.account_number
+  account_number      = var.account_number
+  account_name        = var.account_name
 }
+

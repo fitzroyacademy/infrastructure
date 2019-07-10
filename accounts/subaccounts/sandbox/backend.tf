@@ -6,3 +6,4 @@ terraform {
     dynamodb_table = "fitzroy-terraform-state-lock"
   }
 }
+
