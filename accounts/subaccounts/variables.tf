@@ -1,3 +1,9 @@
-variable "region" {}
-variable "account_name" {}
-variable "account_number" {}
+variable "region" {
+}
+
+variable "account_name" {
+}
+
+variable "account_number" {
+}
+

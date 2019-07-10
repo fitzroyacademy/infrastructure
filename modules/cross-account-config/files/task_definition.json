@@ -1,0 +1,104 @@
+[
+  {
+      "name": "xray-daemon",
+          "image": "amazon/aws-xray-daemon",
+          "cpu": 32,
+          "memoryReservation": 256,
+          "portMappings" : [
+              {
+                  "hostPort": 2000,
+                  "containerPort": 2000,
+                  "protocol": "udp"
+              }
+          ],
+          "logConfiguration": {
+              "logDriver": "awslogs",
+              "options": {
+                  "awslogs-group": "/ecs/web-app/xray",
+                  "awslogs-region": "us-east-2",
+                  "awslogs-stream-prefix": "ecs"
+              }
+          }
+         },
+    {
+      "dnsSearchDomains": null,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "secretOptions": null,
+        "options": {
+          "awslogs-group": "/ecs/web-app",
+          "awslogs-region": "us-east-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "entryPoint": null,
+      "portMappings": [
+        {
+          "hostPort": 5000,
+          "protocol": "tcp",
+          "containerPort": 5000
+        }
+      ],
+      "command": null,
+      "linuxParameters": null,
+      "cpu": 512,
+      "environment": [
+        {
+          "name": "FLASK_ENV",
+          "value": "staging"
+        },
+        {
+          "name": "DB_USER",
+          "value": "fitzroyacademy"
+        },
+        {
+           "name": "DB_ENDPOINT",
+          "value": "db.stage.ops.fitzroyacademy.net"
+        },
+        {
+          "name": "PYTHONUNBUFFERED",
+          "value": "0"
+        }
+      ],
+      "resourceRequirements": null,
+      "ulimits": null,
+      "dnsServers": [],
+      "mountPoints": [],
+      "workingDirectory": null,
+      "secrets": [{
+      "name": "DB_PASSWORD",
+      "valueFrom": "arn:aws:secretsmanager:us-east-2:593798515196:secret:web-app-stage-db-password-kWIz10"
+    }],
+      "dockerSecurityOptions": null,
+      "memory": 512,
+      "memoryReservation": 512,
+      "volumesFrom": [],
+      "stopTimeout": null,
+      "image": "593798515196.dkr.ecr.us-east-2.amazonaws.com/fitzroy-academy/web-app:latest",
+      "startTimeout": null,
+      "dependsOn": null,
+      "disableNetworking": null,
+      "interactive": null,
+      "healthCheck": {
+        "retries": 3,
+        "command": [
+          "CMD-SHELL",
+          "curl -f http://localhost:5000/ || exit 1"
+        ],
+        "timeout": 10,
+        "interval": 30,
+        "startPeriod": 10
+      },
+      "essential": true,
+      "links": null,
+      "hostname": null,
+      "extraHosts": null,
+      "pseudoTerminal": null,
+      "user": null,
+      "readonlyRootFilesystem": null,
+      "dockerLabels": null,
+      "systemControls": null,
+      "privileged": null,
+      "name": "web-app"
+  }
+]
