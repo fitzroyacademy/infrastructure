@@ -267,7 +267,7 @@ resource "aws_ecs_service" "web_app" {
   task_definition = "${aws_ecs_task_definition.web-app-service.arn}"
   launch_type = "FARGATE"
   desired_count   = 2
-  depends_on      = ["aws_iam_role_policy.web_app_ecs_task_policy"]
+  depends_on      = ["aws_iam_role_policy.web_app_ecs_task_policy", "aws_lb_listener.web_app_public"]
 
   load_balancer {
     target_group_arn = "${aws_lb_target_group.web-app.arn}"
@@ -292,4 +292,103 @@ resource "aws_lb_listener" "web_app_public" {
     type             = "forward"
     target_group_arn = "${aws_lb_target_group.web-app.arn}"
   }
+}
+
+# resource "aws_db_instance" "stage_db" {
+#   allocated_storage    = 20
+#   storage_type         = "gp2"
+#   engine               = "postgres"
+#   engine_version       = "10.6-R1"
+#   instance_class       = "db.t2.small"
+#   name                 = "web-app-stage"
+#   identifier = "web-app-stage"
+#   username             = "fitzroyacademy"
+#   multi_az = false
+#   password             = "${aws_secretsmanager_secret_version.stage-password.secret_string}"
+#   parameter_group_name = "default.postgres10.6"
+#   db_subnet_group_name  = "${aws_db_subnet_group.web-app.name}"
+# }
+
+resource "aws_db_subnet_group" "web-app" {
+  name       = "web_app"
+  subnet_ids = ["${module.vpc.private_subnets[0]}", "${module.vpc.private_subnets[1]}", "${module.vpc.private_subnets[2]}"]
+}
+
+resource "aws_kms_key" "rds" {
+  description         = "Key for RDS instance passwords"
+  enable_key_rotation = true
+  policy = <<POLICY
+{
+  "Id": "key-policy",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::${var.account_number}:root"
+        ]
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+}
+
+resource "aws_kms_alias" "rds" {
+  name          = "alias/rds"
+  target_key_id = "${aws_kms_key.rds.key_id}"
+}
+
+resource "aws_secretsmanager_secret" "prod-rds-password" {
+  description         = "web-app prod rds password"
+  kms_key_id          = "${aws_kms_key.rds.key_id}"
+  name                = "web-app-prod-db-password"
+}
+
+resource "aws_secretsmanager_secret" "stage-rds-password" {
+  description         = "web-app staging rds password"
+  kms_key_id          = "${aws_kms_key.rds.key_id}"
+  name                = "web-app-stage-db-password"
+}
+
+resource "random_string" "prod-password" {
+  length = 16
+  special = false
+}
+
+resource "random_string" "stage-password" {
+  length = 16
+  special = false
+}
+
+resource "aws_secretsmanager_secret_version" "stage-password" {
+  lifecycle {
+    ignore_changes = [
+      "secret_string"
+    ]
+  }
+  secret_id     = "${aws_secretsmanager_secret.stage-rds-password.id}"
+  secret_string = <<EOF
+{
+  "password": "${random_string.stage-password.result}"
+}
+EOF
+}
+
+resource "aws_secretsmanager_secret_version" "prod-password" {
+  lifecycle {
+    ignore_changes = [
+      "secret_string"
+    ]
+  }
+  secret_id     = "${aws_secretsmanager_secret.prod-rds-password.id}"
+  secret_string = <<EOF
+{
+  "password": "${random_string.prod-password.result}"
+}
+EOF
 }
