@@ -54,8 +54,7 @@
         {
            "name": "DB_ENDPOINT",
           "value": "db.stage.ops.fitzroyacademy.net"
-        },
-        { "name" : "AWS_XRAY_DAEMON_ADDRESS", "value" : "xray-daemon:2000" }
+        }
       ],
       "resourceRequirements": null,
       "ulimits": null,
@@ -71,7 +70,7 @@
       "memoryReservation": 512,
       "volumesFrom": [],
       "stopTimeout": null,
-      "image": "593798515196.dkr.ecr.us-east-2.amazonaws.com/fitzroy-academy/web-app:v0.0.2",
+      "image": "593798515196.dkr.ecr.us-east-2.amazonaws.com/fitzroy-academy/web-app:latest",
       "startTimeout": null,
       "dependsOn": null,
       "disableNetworking": null,

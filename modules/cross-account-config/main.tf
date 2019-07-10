@@ -96,11 +96,6 @@ resource "aws_iam_role" "web_app_task_role" {
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
 }
 
-resource "aws_iam_role" "xray_task_role" {
-  name               = "XRayECSTaskRole"
-  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
-}
-
 resource "aws_iam_role_policy" "web_app_ecs_task_policy" {
   name = "web_app_ecs_task_policy"
   role = aws_iam_role.web_app_task_role.id
@@ -109,7 +104,7 @@ resource "aws_iam_role_policy" "web_app_ecs_task_policy" {
 }
 
 resource "aws_iam_role_policy_attachment" "xray-attach" {
-  role       = aws_iam_role.xray_task_role.name
+  role       = aws_iam_role.web_app_task_role.name
   policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
 }
 
@@ -167,16 +162,16 @@ resource "aws_ecs_task_definition" "web-app-service" {
   memory                   = 2048
 }
 
-resource "aws_ecs_task_definition" "xray-service" {
-  family                   = "xray-daemon"
-  requires_compatibilities = ["FARGATE"]
-  container_definitions    = file("${path.module}/files/xray_task_definition.json")
-  task_role_arn            = aws_iam_role.xray_task_role.arn
-  execution_role_arn       = aws_iam_role.xray_task_role.arn
-  network_mode             = "awsvpc"
-  cpu                      = 256
-  memory                   = 1024
-}
+# resource "aws_ecs_task_definition" "xray-service" {
+#   family                   = "xray-daemon"
+#   requires_compatibilities = ["FARGATE"]
+#   container_definitions    = file("${path.module}/files/xray_task_definition.json")
+#   task_role_arn            = aws_iam_role.xray_task_role.arn
+#   execution_role_arn       = aws_iam_role.xray_task_role.arn
+#   network_mode             = "awsvpc"
+#   cpu                      = 256
+#   memory                   = 1024
+# }
 
 resource "aws_cloudwatch_log_group" "web-app-log-group" {
   name = "/ecs/web-app-tf"
@@ -351,8 +346,7 @@ resource "aws_ecs_service" "web_app" {
   desired_count   = 2
   depends_on = [
     aws_iam_role_policy.web_app_ecs_task_policy,
-    aws_lb_listener.web_app_public,
-    aws_iam_role.xray_task_role
+    aws_lb_listener.web_app_public
   ]
 
   load_balancer {
