@@ -345,17 +345,16 @@ resource "aws_route53_zone" "ops" {
   name = "ops.fitzroyacademy.net"
 
   vpc {
-    vpc_id = "${module.vpc.vpc_id}"
+    vpc_id = module.vpc.vpc_id
   }
 }
 
 resource "aws_route53_record" "stage-db" {
-  zone_id = "${aws_route53_zone.ops.zone_id}"
+  zone_id = aws_route53_zone.ops.zone_id
   name    = "db.stage.ops.fitzroyacademy.net"
-  type    = "A"
-  alias {
-    name                   = "${aws_db_instance.stage_db.endpoint}"
-  }
+  type    = "CNAME"
+  ttl     = "60"
+  records        = [aws_db_instance.stage_db.address]
 }
 
 
