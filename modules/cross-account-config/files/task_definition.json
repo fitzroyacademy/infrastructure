@@ -1,6 +1,6 @@
 [
   {
-          "name": "xray-daemon",
+      "name": "xray-daemon",
           "image": "amazon/aws-xray-daemon",
           "cpu": 32,
           "memoryReservation": 256,
@@ -14,7 +14,7 @@
           "logConfiguration": {
               "logDriver": "awslogs",
               "options": {
-                  "awslogs-group": "/ecs/web-app-tf/xray",
+                  "awslogs-group": "/ecs/web-app/xray",
                   "awslogs-region": "us-east-2",
                   "awslogs-stream-prefix": "ecs"
               }
@@ -26,7 +26,7 @@
         "logDriver": "awslogs",
         "secretOptions": null,
         "options": {
-          "awslogs-group": "/ecs/web-app-tf",
+          "awslogs-group": "/ecs/web-app",
           "awslogs-region": "us-east-2",
           "awslogs-stream-prefix": "ecs"
         }
@@ -54,6 +54,10 @@
         {
            "name": "DB_ENDPOINT",
           "value": "db.stage.ops.fitzroyacademy.net"
+        },
+        {
+          "name": "PYTHONUNBUFFERED",
+          "value": "0"
         }
       ],
       "resourceRequirements": null,
@@ -95,6 +99,6 @@
       "dockerLabels": null,
       "systemControls": null,
       "privileged": null,
-      "name": "web-app-tf"
+      "name": "web-app"
   }
 ]

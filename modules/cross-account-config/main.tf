@@ -74,6 +74,12 @@ data "aws_iam_policy_document" "circleci_permissions" {
     actions   = ["ecr:GetAuthorizationToken", "ecr:InitiateLayerUpload", "ecr:UploadLayerPart", "ecr:CompleteLayerUpload", "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage"]
     resources = ["*"]
   }
+
+  statement {
+    effect = "Allow"
+    actions = ["ecs:UpdateService"]
+    resources = [aws_ecs_service.web_app.id]
+  }
 }
 
 resource "aws_iam_role_policy" "ci_policy" {
@@ -152,7 +158,7 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
 # data ""
 
 resource "aws_ecs_task_definition" "web-app-service" {
-  family                   = "web-app-tf"
+  family                   = "web-app"
   requires_compatibilities = ["FARGATE"]
   container_definitions    = file("${path.module}/files/task_definition.json")
   task_role_arn            = aws_iam_role.web_app_task_role.arn
@@ -174,11 +180,11 @@ resource "aws_ecs_task_definition" "web-app-service" {
 # }
 
 resource "aws_cloudwatch_log_group" "web-app-log-group" {
-  name = "/ecs/web-app-tf"
+  name = "/ecs/web-app"
 }
 
 resource "aws_cloudwatch_log_group" "xray-log-group" {
-  name = "/ecs/web-app-tf/xray"
+  name = "/ecs/web-app/xray"
 }
 
 data "aws_availability_zones" "available" {
@@ -505,24 +511,13 @@ resource "aws_secretsmanager_secret_version" "stage-password" {
     ignore_changes = [secret_string]
   }
   secret_id = aws_secretsmanager_secret.stage-rds-password.id
-  secret_string = <<EOF
-{
-  "password": "${random_string.stage-password.result}"
-}
-EOF
-
-}
+  secret_string = random_string.stage-password.result
 
 resource "aws_secretsmanager_secret_version" "prod-password" {
 lifecycle {
 ignore_changes = [secret_string]
 }
 secret_id     = aws_secretsmanager_secret.prod-rds-password.id
-secret_string = <<EOF
-{
-  "password": "${random_string.prod-password.result}"
-}
-EOF
-
+secret_string = random_string.prod-password.result
 }
 
