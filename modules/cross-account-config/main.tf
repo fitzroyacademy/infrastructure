@@ -511,13 +511,21 @@ resource "aws_secretsmanager_secret_version" "stage-password" {
     ignore_changes = [secret_string]
   }
   secret_id = aws_secretsmanager_secret.stage-rds-password.id
-  secret_string = random_string.stage-password.result
+  secret_string = <<EOF
+${random_string.stage-password.result}
+EOF
+
+}
 
 resource "aws_secretsmanager_secret_version" "prod-password" {
 lifecycle {
 ignore_changes = [secret_string]
 }
 secret_id     = aws_secretsmanager_secret.prod-rds-password.id
-secret_string = random_string.prod-password.result
+secret_string = <<EOF
+${random_string.prod-password.result}
+}
+EOF
+
 }
 
