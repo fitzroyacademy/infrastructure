@@ -336,7 +336,7 @@ resource "aws_lb_listener" "web_app_public" {
 #   identifier = "web-app-stage"
 #   username             = "fitzroyacademy"
 #   multi_az = false
-#   password             = "${aws_secretsmanager_secret_version.stage-password.secret_string}"
+#   password = jsondecode(aws_secretsmanager_secret_version.stage-password.secret_string)["key1"]
 #   parameter_group_name = "default.postgres10.6"
 #   db_subnet_group_name  = "${aws_db_subnet_group.web-app.name}"
 # }
