@@ -93,7 +93,12 @@ resource "aws_ecs_cluster" "web-app-cluster" {
 
 resource "aws_iam_role" "web_app_task_role" {
   name               = "WebAppECSTaskRole"
-  assume_role_policy = data.aws_iam_policy_document.web_app_task_role_assume_role_policy.json
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+}
+
+resource "aws_iam_role" "xray_task_role" {
+  name               = "XRayECSTaskRole"
+  assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
 }
 
 resource "aws_iam_role_policy" "web_app_ecs_task_policy" {
@@ -103,7 +108,12 @@ resource "aws_iam_role_policy" "web_app_ecs_task_policy" {
   policy = data.aws_iam_policy_document.web_app_task_role_policy.json
 }
 
-data "aws_iam_policy_document" "web_app_task_role_assume_role_policy" {
+resource "aws_iam_role_policy_attachment" "xray-attach" {
+  role       = aws_iam_role.xray_task_role.name
+  policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
+}
+
+data "aws_iam_policy_document" "ecs_assume_role_policy" {
   statement {
     effect = "Allow"
 
@@ -132,6 +142,16 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
     actions   = ["logs:CreateLogGroup", "logs:CreateLogStream"]
     resources = ["*"]
   }
+  statement {
+    effect    = "Allow"
+    actions   = ["secretsmanager:GetSecretValue"]
+    resources = [aws_secretsmanager_secret.stage-rds-password.arn,aws_secretsmanager_secret.prod-rds-password.arn]
+  }
+  statement {
+    effect    = "Allow"
+    actions   = ["kms:Decrypt","kms:Encrypt","kms:ReEncryptTo","kms:GenerateDataKey","kms:DescribeKey","kms:ReEncryptFrom"]
+    resources = [aws_kms_key.rds.arn]
+  }
 }
 
 # data ""
@@ -147,8 +167,23 @@ resource "aws_ecs_task_definition" "web-app-service" {
   memory                   = 2048
 }
 
+resource "aws_ecs_task_definition" "xray-service" {
+  family                   = "xray-daemon"
+  requires_compatibilities = ["FARGATE"]
+  container_definitions    = file("${path.module}/files/xray_task_definition.json")
+  task_role_arn            = aws_iam_role.xray_task_role.arn
+  execution_role_arn       = aws_iam_role.xray_task_role.arn
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 1024
+}
+
 resource "aws_cloudwatch_log_group" "web-app-log-group" {
   name = "/ecs/web-app-tf"
+}
+
+resource "aws_cloudwatch_log_group" "xray-log-group" {
+  name = "/ecs/web-app-tf/xray"
 }
 
 data "aws_availability_zones" "available" {
@@ -215,7 +250,34 @@ resource "aws_security_group" "alb_sg" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["209.6.145.111/32"]
+    cidr_blocks = ["67.186.135.213/32"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_security_group" "xray_sg" {
+  name        = "xray__container_sg"
+  description = "Attached to the xray instances"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port       = 2000
+    to_port         = 2000
+    protocol        = "tcp"
+    security_groups = [aws_security_group.container_sg.id]
+  }
+
+    ingress {
+    from_port       = 2000
+    to_port         = 2000
+    protocol        = "udp"
+    security_groups = [aws_security_group.container_sg.id]
   }
 
   egress {
@@ -290,6 +352,7 @@ resource "aws_ecs_service" "web_app" {
   depends_on = [
     aws_iam_role_policy.web_app_ecs_task_policy,
     aws_lb_listener.web_app_public,
+    aws_iam_role.xray_task_role
   ]
 
   load_balancer {
@@ -298,14 +361,6 @@ resource "aws_ecs_service" "web_app" {
     container_port   = 5000
   }
   network_configuration {
-    # TF-UPGRADE-TODO: In Terraform v0.10 and earlier, it was sometimes necessary to
-    # force an interpolation expression to be interpreted as a list by wrapping it
-    # in an extra set of list brackets. That form was supported for compatibilty in
-    # v0.11, but is no longer supported in Terraform v0.12.
-    #
-    # If the expression in the following list itself returns a list, remove the
-    # brackets to avoid interpretation as a list of lists. If the expression
-    # returns a single list item then leave it as-is and remove this TODO comment.
     subnets          = module.vpc.private_subnets
     security_groups  = [aws_security_group.container_sg.id]
     assign_public_ip = false
@@ -326,6 +381,26 @@ resource "aws_lb_listener" "web_app_public" {
   }
 }
 
+resource "aws_security_group" "db_sg" {
+  name        = "web_app_db_sg"
+  description = "Allows local db traffic"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    security_groups = [aws_security_group.container_sg.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
 resource "aws_db_instance" "stage_db" {
   allocated_storage    = 20
   storage_type         = "gp2"
@@ -339,6 +414,7 @@ resource "aws_db_instance" "stage_db" {
   password = jsondecode(aws_secretsmanager_secret_version.stage-password.secret_string)["password"]
   parameter_group_name = "default.postgres10"
   db_subnet_group_name  = aws_db_subnet_group.web-app.name
+  vpc_security_group_ids = [aws_security_group.db_sg.id]
 }
 
 resource "aws_route53_zone" "ops" {
@@ -380,6 +456,21 @@ resource "aws_kms_key" "rds" {
         ]
       },
       "Action": "kms:*",
+      "Resource": "*"
+    },
+    {
+      "Sid": "Allow use of the key",
+      "Effect": "Allow",
+      "Principal": {"AWS": [
+        "${aws_iam_role.web_app_task_role.arn}"
+      ]},
+      "Action": [
+        "kms:Encrypt",
+        "kms:Decrypt",
+        "kms:ReEncrypt*",
+        "kms:GenerateDataKey*",
+        "kms:DescribeKey"
+      ],
       "Resource": "*"
     }
   ]

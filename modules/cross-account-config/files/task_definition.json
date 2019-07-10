@@ -1,4 +1,25 @@
 [
+  {
+          "name": "xray-daemon",
+          "image": "amazon/aws-xray-daemon",
+          "cpu": 32,
+          "memoryReservation": 256,
+          "portMappings" : [
+              {
+                  "hostPort": 2000,
+                  "containerPort": 2000,
+                  "protocol": "udp"
+              }
+          ],
+          "logConfiguration": {
+              "logDriver": "awslogs",
+              "options": {
+                  "awslogs-group": "/ecs/web-app-tf/xray",
+                  "awslogs-region": "us-east-2",
+                  "awslogs-stream-prefix": "ecs"
+              }
+          }
+         },
     {
       "dnsSearchDomains": null,
       "logConfiguration": {
@@ -24,15 +45,27 @@
       "environment": [
         {
           "name": "FLASK_ENV",
-          "value": "test"
-        }
+          "value": "staging"
+        },
+        {
+          "name": "DB_USER",
+          "value": "fitzroyacademy"
+        },
+        {
+           "name": "DB_ENDPOINT",
+          "value": "db.stage.ops.fitzroyacademy.net"
+        },
+        { "name" : "AWS_XRAY_DAEMON_ADDRESS", "value" : "xray-daemon:2000" }
       ],
       "resourceRequirements": null,
       "ulimits": null,
       "dnsServers": [],
       "mountPoints": [],
       "workingDirectory": null,
-      "secrets": null,
+      "secrets": [{
+      "name": "DB_PASSWORD",
+      "valueFrom": "arn:aws:secretsmanager:us-east-2:593798515196:secret:web-app-stage-db-password-kWIz10"
+    }],
       "dockerSecurityOptions": null,
       "memory": 512,
       "memoryReservation": 512,
