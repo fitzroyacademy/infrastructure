@@ -231,14 +231,6 @@ resource "aws_security_group" "dkr_sg" {
     from_port = 443
     to_port   = 443
     protocol  = "tcp"
-    # TF-UPGRADE-TODO: In Terraform v0.10 and earlier, it was sometimes necessary to
-    # force an interpolation expression to be interpreted as a list by wrapping it
-    # in an extra set of list brackets. That form was supported for compatibilty in
-    # v0.11, but is no longer supported in Terraform v0.12.
-    #
-    # If the expression in the following list itself returns a list, remove the
-    # brackets to avoid interpretation as a list of lists. If the expression
-    # returns a single list item then leave it as-is and remove this TODO comment.
     cidr_blocks = [module.vpc.vpc_cidr_block]
   }
 
@@ -456,6 +448,22 @@ resource "aws_route53_zone" "ops" {
 
   vpc {
     vpc_id = module.vpc.vpc_id
+  }
+}
+
+resource "aws_route53_zone" "new" {
+  name = "new.fitzroyacademy.com"
+}
+
+resource "aws_route53_record" "app" {
+  zone_id = aws_route53_zone.new.zone_id
+  name = "new.fitzroyacademy.com"
+  type = "A"
+  alias {
+    name = aws_lb.web_app_alb.dns_name
+    zone_id = aws_lb.web_app_alb.zone_id
+    evaluate_target_health = false
+
   }
 }
 
