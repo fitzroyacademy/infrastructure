@@ -202,9 +202,9 @@ module "vpc" {
   public_subnets  = ["10.200.3.0/24", "10.200.4.0/24", "10.200.5.0/24"]
 
   enable_vpn_gateway                   = false
-  enable_nat_gateway                   = true
-  single_nat_gateway                   = true
-  enable_s3_endpoint                   = true
+  enable_nat_gateway                   = false
+  enable_s3_endpoint                   = false
+  single_nat_gateway                    = true
   enable_ecr_dkr_endpoint              = true
   ecr_dkr_endpoint_private_dns_enabled = true
   ecr_dkr_endpoint_security_group_ids  = [aws_security_group.dkr_sg.id]
@@ -213,6 +213,14 @@ module "vpc" {
   # logs_endpoint_security_group_ids = ...
   # logs_endpoint_private_dns_enabled = true
 }
+
+resource "aws_route" "ec2_nat_gateway" {
+  destination_cidr_block = "0.0.0.0/0"
+  network_interface_id   = data.aws_instance.bastion.network_interface_id
+  route_table_id         = module.vpc.private_route_table_ids[count.index]
+  count = length(module.vpc.private_route_table_ids)
+}
+
 
 resource "aws_security_group" "dkr_sg" {
   name        = "ecs_dkr_sg"
@@ -248,11 +256,21 @@ resource "aws_security_group" "alb_sg" {
   vpc_id      = module.vpc.vpc_id
 
   ingress {
+    from_port   = 443
+    to_port     = 443 
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+  }
+  ingress {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["67.186.135.213/32"]
+    cidr_blocks = ["0.0.0.0/0"]
+    ipv6_cidr_blocks = ["::/0"]
+
   }
+
 
   egress {
     from_port   = 0
@@ -349,7 +367,8 @@ resource "aws_ecs_service" "web_app" {
   cluster         = aws_ecs_cluster.web-app-cluster.id
   task_definition = aws_ecs_task_definition.web-app-service.arn
   launch_type     = "FARGATE"
-  desired_count   = 2
+  health_check_grace_period_seconds  = 30
+  desired_count   = 1
   depends_on = [
     aws_iam_role_policy.web_app_ecs_task_policy,
     aws_lb_listener.web_app_public
@@ -376,7 +395,15 @@ resource "aws_lb_listener" "web_app_public" {
   # certificate_arn   = "arn:aws:iam::187416307283:server-certificate/test_cert_rab3wuqwgja25ct3n4jdj2tzu4"
 
   default_action {
-    type             = "forward"
+    type             = "redirect"
+    redirect {
+                host        = "#{host}"
+                path        = "/#{path}"
+                port        = "443"
+                protocol    = "HTTPS"
+                query       = "#{query}"
+                status_code = "HTTP_301"
+            }
     target_group_arn = aws_lb_target_group.web-app.arn
   }
 }
@@ -391,6 +418,13 @@ resource "aws_security_group" "db_sg" {
     to_port     = 5432
     protocol    = "tcp"
     security_groups = [aws_security_group.container_sg.id]
+  }
+
+  ingress {
+    from_port   = 5432
+    to_port     = 5432
+    protocol    = "tcp"
+    cidr_blocks = ["10.200.5.219/32"]
   }
 
   egress {
@@ -423,6 +457,16 @@ resource "aws_route53_zone" "ops" {
   vpc {
     vpc_id = module.vpc.vpc_id
   }
+}
+
+data "aws_instance" "bastion" {
+  instance_id = "i-07888c2029e2adacc"
+  # this instance runs NAT:
+  # chmod a+x /etc/rc.local
+  # in rc.local:
+  # echo 1 > /proc/sys/net/ipv4/ip_forward
+  # iptables -t nat -A POSTROUTING -s 10.200.0.0/16 -j MASQUERADE
+  # source/destination check on the instance must be off
 }
 
 resource "aws_route53_record" "stage-db" {
