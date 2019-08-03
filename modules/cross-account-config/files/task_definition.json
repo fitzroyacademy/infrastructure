@@ -45,19 +45,27 @@
       "environment": [
         {
           "name": "FLASK_ENV",
-          "value": "staging"
+          "value": "production"
         },
         {
           "name": "DB_USER",
           "value": "fitzroyacademy"
         },
         {
+           "name": "DB_HOST",
+          "value": "db.stage.ops.fitzroyacademy.net"
+        },
+         {
            "name": "DB_ENDPOINT",
           "value": "db.stage.ops.fitzroyacademy.net"
         },
         {
           "name": "PYTHONUNBUFFERED",
           "value": "0"
+        },
+        {
+          "name": "DB_OPTIONS",
+          "value": ""
         }
       ],
       "resourceRequirements": null,
@@ -65,10 +73,16 @@
       "dnsServers": [],
       "mountPoints": [],
       "workingDirectory": null,
-      "secrets": [{
-      "name": "DB_PASSWORD",
-      "valueFrom": "arn:aws:secretsmanager:us-east-2:593798515196:secret:web-app-stage-db-password-kWIz10"
-    }],
+      "secrets": [
+        {
+        "name": "DB_PASSWORD",
+        "valueFrom": "arn:aws:secretsmanager:us-east-2:593798515196:secret:web-app-stage-db-password-kWIz10"
+        },
+        {
+        "name": "APP_SECRET_KEY",
+        "valueFrom": "arn:aws:secretsmanager:us-east-2:593798515196:secret:web-app-stage-secret-key-w8zHxX"
+        }
+      ],
       "dockerSecurityOptions": null,
       "memory": 256,
       "memoryReservation": 128,

@@ -146,7 +146,9 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
   statement {
     effect    = "Allow"
     actions   = ["secretsmanager:GetSecretValue"]
-    resources = [aws_secretsmanager_secret.stage-rds-password.arn,aws_secretsmanager_secret.prod-rds-password.arn]
+    resources = [aws_secretsmanager_secret.stage-rds-password.arn,aws_secretsmanager_secret.prod-rds-password.arn,
+    aws_secretsmanager_secret.stage-secret-key.arn, aws_secretsmanager_secret.prod-secret-key.arn
+    ]
   }
   statement {
     effect    = "Allow"
@@ -164,8 +166,8 @@ resource "aws_ecs_task_definition" "web-app-service" {
   task_role_arn            = aws_iam_role.web_app_task_role.arn
   execution_role_arn       = aws_iam_role.web_app_task_role.arn
   network_mode             = "awsvpc"
-  cpu                      = 1024
-  memory                   = 2048
+  cpu                      = 256
+  memory                   = 512
 }
 
 # resource "aws_ecs_task_definition" "xray-service" {
@@ -558,6 +560,31 @@ resource "random_string" "stage-password" {
   special = false
 }
 
+
+resource "aws_secretsmanager_secret" "stage-secret-key" {
+  description = "web-app stage secret key"
+  # kms_key_id = aws_kms_key.rds.key_id
+  name = "web-app-stage-secret-key"
+}
+
+resource "aws_secretsmanager_secret" "prod-secret-key" {
+  description = "web-app prod secret key"
+  # kms_key_id = aws_kms_key.rds.key_id
+  name = "web-app-prod-secret-key"
+}
+
+resource "random_string" "stage-secret-key" {
+  length = 16
+  special = false
+}
+
+resource "random_string" "prod-secret-key" {
+  length = 16
+  special = false
+}
+
+
+
 resource "aws_secretsmanager_secret_version" "stage-password" {
   lifecycle {
     ignore_changes = [secret_string]
@@ -581,3 +608,26 @@ EOF
 
 }
 
+
+resource "aws_secretsmanager_secret_version" "stage-secret-key" {
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+  secret_id = aws_secretsmanager_secret.stage-secret-key.id
+  secret_string = <<EOF
+${random_string.stage-secret-key.result}
+EOF
+
+}
+
+resource "aws_secretsmanager_secret_version" "prod-secret-key" {
+lifecycle {
+ignore_changes = [secret_string]
+}
+secret_id     = aws_secretsmanager_secret.prod-secret-key.id
+secret_string = <<EOF
+${random_string.prod-secret-key.result}
+}
+EOF
+
+}
