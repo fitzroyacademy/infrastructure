@@ -76,8 +76,8 @@ data "aws_iam_policy_document" "circleci_permissions" {
   }
 
   statement {
-    effect = "Allow"
-    actions = ["ecs:UpdateService"]
+    effect    = "Allow"
+    actions   = ["ecs:UpdateService"]
     resources = ["arn:aws:ecs:*"]
   }
 }
@@ -169,57 +169,57 @@ resource "aws_route53_zone" "new" {
 }
 
 module "vpc" {
-  source  = "terraform-aws-modules/vpc/aws"
+  source = "terraform-aws-modules/vpc/aws"
   version = "~> v2.0"
-  name    = "sandbox-vpc"
-  cidr    = "10.200.0.0/16"
+  name = "sandbox-vpc"
+  cidr = "10.200.0.0/16"
 
-  azs             = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1], data.aws_availability_zones.available.names[2]]
+  azs = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1], data.aws_availability_zones.available.names[2]]
   private_subnets = ["10.200.0.0/24", "10.200.1.0/24", "10.200.2.0/24"]
-  public_subnets  = ["10.200.3.0/24", "10.200.4.0/24", "10.200.5.0/24"]
+  public_subnets = ["10.200.3.0/24", "10.200.4.0/24", "10.200.5.0/24"]
 
-  enable_vpn_gateway                   = false
-  enable_nat_gateway                   = false
-  enable_s3_endpoint                   = false
-  single_nat_gateway                    = true
-  enable_ecr_dkr_endpoint              = true
+  enable_vpn_gateway = false
+  enable_nat_gateway = false
+  enable_s3_endpoint = false
+  single_nat_gateway = true
+  enable_ecr_dkr_endpoint = true
   ecr_dkr_endpoint_private_dns_enabled = true
-  ecr_dkr_endpoint_security_group_ids  = [aws_security_group.dkr_sg.id]
-  enable_dns_hostnames                 = true
+  ecr_dkr_endpoint_security_group_ids = [aws_security_group.dkr_sg.id]
+  enable_dns_hostnames = true
   # enable_logs_endpoint = true
   # logs_endpoint_security_group_ids = ...
   # logs_endpoint_private_dns_enabled = true
 }
 
 resource "aws_security_group" "dkr_sg" {
-  name        = "ecs_dkr_sg"
+  name = "ecs_dkr_sg"
   description = "Allow HTTPS inbound traffic to dkr private endpoint"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id = module.vpc.vpc_id
 
   ingress {
     from_port = 443
-    to_port   = 443
-    protocol  = "tcp"
+    to_port = 443
+    protocol = "tcp"
     cidr_blocks = [module.vpc.vpc_cidr_block]
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
 resource "aws_route" "ec2_nat_gateway" {
   destination_cidr_block = "0.0.0.0/0"
-  network_interface_id   = data.aws_instance.bastion.network_interface_id
-  route_table_id         = module.vpc.private_route_table_ids[count.index]
+  network_interface_id = data.aws_instance.bastion.network_interface_id
+  route_table_id = module.vpc.private_route_table_ids[count.index]
   count = length(module.vpc.private_route_table_ids)
 }
 
 resource "aws_acm_certificate" "public_cert" {
-  domain_name       = "new.fitzroyacademy.com"
+  domain_name = "new.fitzroyacademy.com"
   validation_method = "DNS"
 
   subject_alternative_names = ["*.new.fitzroyacademy.com"]
@@ -231,26 +231,26 @@ resource "aws_acm_certificate" "public_cert" {
 
 
 resource "aws_route53_record" "public_cert_validation" {
-  name    = "${aws_acm_certificate.public_cert.domain_validation_options.0.resource_record_name}"
-  type    = "${aws_acm_certificate.public_cert.domain_validation_options.0.resource_record_type}"
+  name = "${aws_acm_certificate.public_cert.domain_validation_options.0.resource_record_name}"
+  type = "${aws_acm_certificate.public_cert.domain_validation_options.0.resource_record_type}"
   zone_id = "${aws_route53_zone.new.id}"
   records = ["${aws_acm_certificate.public_cert.domain_validation_options.0.resource_record_value}"]
-  ttl     = 60
+  ttl = 60
 }
 
 resource "aws_route53_record" "alpha" {
-  name    = "new.fitzroyacademy.com"
-  type    = "A"
+  name = "new.fitzroyacademy.com"
+  type = "A"
   zone_id = "${aws_route53_zone.new.id}"
   alias {
-    name                   = "alpha.new.fitzroyacademy.com"
-    zone_id                = "${aws_route53_zone.new.id}"
+    name = "alpha.new.fitzroyacademy.com"
+    zone_id = "${aws_route53_zone.new.id}"
     evaluate_target_health = true
   }
 }
 
 resource "aws_acm_certificate_validation" "cert" {
-  certificate_arn         = "${aws_acm_certificate.public_cert.arn}"
+  certificate_arn = "${aws_acm_certificate.public_cert.arn}"
   validation_record_fqdns = ["${aws_route53_record.public_cert_validation.fqdn}"]
 }
 

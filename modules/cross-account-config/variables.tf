@@ -8,5 +8,5 @@ variable "account_name" {
 }
 
 variable "region" {
-  
+
 }

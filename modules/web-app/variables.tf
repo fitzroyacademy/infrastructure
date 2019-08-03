@@ -22,11 +22,11 @@ variable "docker_tag" {
 }
 
 variable "public_subnets" {
-  type="list"
+  type = "list"
 }
 
 variable "private_subnets" {
-  type="list"
+  type = "list"
 }
 
 variable "cluster_id" {}
