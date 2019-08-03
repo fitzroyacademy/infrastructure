@@ -7,3 +7,6 @@ variable "account_number" {
 variable "account_name" {
 }
 
+variable "region" {
+  
+}

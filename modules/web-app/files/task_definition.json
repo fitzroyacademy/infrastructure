@@ -20,23 +20,24 @@
               }
           }
          },
+    
     {
       "dnsSearchDomains": null,
       "logConfiguration": {
         "logDriver": "awslogs",
         "secretOptions": null,
         "options": {
-          "awslogs-group": "/ecs/web-app",
-          "awslogs-region": "us-east-2",
+          "awslogs-group": "/ecs/web-app/${environment}",
+          "awslogs-region": "${region}",
           "awslogs-stream-prefix": "ecs"
         }
       },
       "entryPoint": null,
       "portMappings": [
         {
-          "hostPort": 5000,
+          "hostPort": ${container_port},
           "protocol": "tcp",
-          "containerPort": 5000
+          "containerPort": ${container_port}
         }
       ],
       "command": null,
@@ -53,11 +54,11 @@
         },
         {
            "name": "DB_HOST",
-          "value": "db.stage.ops.fitzroyacademy.net"
+          "value": "${db_endpoint}"
         },
          {
            "name": "DB_ENDPOINT",
-          "value": "db.stage.ops.fitzroyacademy.net"
+          "value": "${db_endpoint}"
         },
         {
           "name": "PYTHONUNBUFFERED",
@@ -76,11 +77,11 @@
       "secrets": [
         {
         "name": "DB_PASSWORD",
-        "valueFrom": "arn:aws:secretsmanager:us-east-2:593798515196:secret:web-app-stage-db-password-kWIz10"
+        "valueFrom": "${db_password_arn}"
         },
         {
         "name": "APP_SECRET_KEY",
-        "valueFrom": "arn:aws:secretsmanager:us-east-2:593798515196:secret:web-app-stage-secret-key-w8zHxX"
+        "valueFrom": "${secret_key_arn}"
         }
       ],
       "dockerSecurityOptions": null,
@@ -88,7 +89,7 @@
       "memoryReservation": 128,
       "volumesFrom": [],
       "stopTimeout": null,
-      "image": "593798515196.dkr.ecr.us-east-2.amazonaws.com/fitzroy-academy/web-app:latest",
+      "image": "${docker_image}",
       "startTimeout": null,
       "dependsOn": null,
       "disableNetworking": null,
@@ -97,7 +98,7 @@
         "retries": 3,
         "command": [
           "CMD-SHELL",
-          "curl -f http://localhost:5000/ || exit 1"
+          "curl -f http://localhost:${container_port}/ || exit 1"
         ],
         "timeout": 10,
         "interval": 30,
@@ -113,6 +114,6 @@
       "dockerLabels": null,
       "systemControls": null,
       "privileged": null,
-      "name": "web-app"
+      "name": "web-app-${environment}"
   }
 ]
