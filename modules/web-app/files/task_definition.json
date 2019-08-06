@@ -14,7 +14,7 @@
           "logConfiguration": {
               "logDriver": "awslogs",
               "options": {
-                  "awslogs-group": "/ecs/web-app/xray",
+                  "awslogs-group": "/ecs/web-app/${environment}/xray",
                   "awslogs-region": "us-east-2",
                   "awslogs-stream-prefix": "ecs"
               }
@@ -82,6 +82,14 @@
         {
         "name": "APP_SECRET_KEY",
         "valueFrom": "${secret_key_arn}"
+        },
+        {
+          "name": "MAILGUN_API_KEY",
+          "valueFrom": "${mailgun_api_key_arn}"
+        },
+        {
+          "name":"MAILGUN_API_URL",
+          "valueFrom": "${mailgun_url_arn}"
         }
       ],
       "dockerSecurityOptions": null,

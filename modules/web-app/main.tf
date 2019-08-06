@@ -48,7 +48,15 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
     actions = ["secretsmanager:GetSecretValue"]
     resources = [
       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-db-password-??????",
-      "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-secret-key-??????"
+      "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-secret-key-??????",
+      "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-mailgun-api-key-??????"
+    ]
+  }
+  statement {
+    effect  = "Allow"
+    actions = ["ssm:GetParameter","ssm:GetParameters"]
+    resources = [
+      aws_ssm_parameter.mailgun_api_url.arn
     ]
   }
   statement {
@@ -68,6 +76,8 @@ data "template_file" "web_app_task_definition" {
     docker_image    = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
     db_endpoint     = "db.${var.environment}.ops.fitzroyacademy.net"
     container_port  = var.container_port
+    mailgun_api_key_arn = aws_secretsmanager_secret.mailgun-api-key.arn
+    mailgun_url_arn = aws_ssm_parameter.mailgun_api_url.arn
   }
 }
 
@@ -339,6 +349,11 @@ resource "aws_secretsmanager_secret" "rds-password" {
   name        = "web-app-${var.environment}-db-password"
 }
 
+resource "aws_secretsmanager_secret" "mailgun-api-key" {
+  description = "web-app mailgun api key"
+  name        = "web-app-mailgun-api-key"
+}
+
 
 resource "aws_secretsmanager_secret" "secret-key" {
   description = "web-app ${var.environment} secret key"
@@ -356,6 +371,14 @@ resource "random_string" "secret-key" {
   special = false
 }
 
+resource "aws_secretsmanager_secret_version" "mailgun-api-key" {
+  lifecycle {
+    ignore_changes = [secret_string]
+  }
+  secret_id     = aws_secretsmanager_secret.mailgun-api-key.id
+  secret_string = "initial"
+}
+
 
 resource "aws_secretsmanager_secret_version" "db-password" {
   lifecycle {
@@ -364,10 +387,20 @@ resource "aws_secretsmanager_secret_version" "db-password" {
   secret_id     = aws_secretsmanager_secret.rds-password.id
   secret_string = chomp(random_string.db-password.result)
 }
+
 resource "aws_secretsmanager_secret_version" "secret-key" {
   lifecycle {
     ignore_changes = [secret_string]
   }
   secret_id     = aws_secretsmanager_secret.secret-key.id
   secret_string = random_string.secret-key.result
+}
+
+resource "aws_ssm_parameter" "mailgun_api_url" {
+  name  = "mailgun-api-url"
+  type  = "String"
+  value = "initial"
+  lifecycle {
+    ignore_changes = [value]
+  }
 }
