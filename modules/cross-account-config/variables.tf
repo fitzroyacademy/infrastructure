@@ -10,3 +10,7 @@ variable "account_name" {
 variable "region" {
 
 }
+
+variable "docker_tag" {
+  default = "latest"
+}

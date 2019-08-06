@@ -36,4 +36,3 @@ module "cross_account_config" {
   account_name        = var.account_name
   region              = var.region
 }
-

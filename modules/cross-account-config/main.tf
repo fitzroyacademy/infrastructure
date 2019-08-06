@@ -66,7 +66,7 @@ data "aws_iam_policy_document" "circleci_permissions" {
   statement {
     effect    = "Allow"
     actions   = ["ecr:PutImage"]
-    resources = ["arn:aws:ecr:*:${var.account_number}:repository/fitzroy-academy/web-app"]
+    resources = ["arn:aws:ecr:*:${var.account_number}:repository/*"]
   }
 
   statement {
@@ -259,7 +259,7 @@ module "alpha_env" {
   environment = "alpha"
   region = var.region
   vpc_id = module.vpc.vpc_id
-  docker_tag = "latest"
+  docker_tag = var.docker_tag
   account_number = var.account_number
   public_subnets = module.vpc.public_subnets
   private_subnets = module.vpc.private_subnets
