@@ -67,6 +67,10 @@
         {
           "name": "DB_OPTIONS",
           "value": ""
+        },
+        {
+          "name": "DB_DRIVER",
+          "value": "postgres"
         }
       ],
       "resourceRequirements": null,
