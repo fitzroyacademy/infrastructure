@@ -1,26 +1,4 @@
-[
-  {
-      "name": "xray-daemon",
-          "image": "amazon/aws-xray-daemon",
-          "cpu": 32,
-          "memoryReservation": 256,
-          "portMappings" : [
-              {
-                  "hostPort": 2000,
-                  "containerPort": 2000,
-                  "protocol": "udp"
-              }
-          ],
-          "logConfiguration": {
-              "logDriver": "awslogs",
-              "options": {
-                  "awslogs-group": "/ecs/web-app/${environment}/xray",
-                  "awslogs-region": "us-east-2",
-                  "awslogs-stream-prefix": "ecs"
-              }
-          }
-         },
-    
+[   
     {
       "dnsSearchDomains": null,
       "logConfiguration": {
@@ -107,10 +85,10 @@
       "disableNetworking": null,
       "interactive": null,
       "healthCheck": {
-        "retries": 3,
+        "retries": 5,
         "command": [
           "CMD-SHELL",
-          "curl -f http://localhost:${container_port}/ || exit 1"
+          "exit 0"
         ],
         "timeout": 10,
         "interval": 30,
@@ -128,4 +106,5 @@
       "privileged": null,
       "name": "web-app-${environment}"
   }
+
 ]
