@@ -49,6 +49,9 @@
         {
           "name": "DB_DRIVER",
           "value": "postgres"
+        },
+        {"name": "S3_BUCKET",
+          "value": "${s3_bucket}"
         }
       ],
       "resourceRequirements": null,

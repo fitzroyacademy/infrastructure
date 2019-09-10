@@ -83,6 +83,7 @@ data "template_file" "web_app_task_definition" {
     container_port  = var.container_port
     mailgun_api_key_arn = aws_secretsmanager_secret.mailgun-api-key.arn
     mailgun_url_arn = aws_ssm_parameter.mailgun_api_url.arn
+    s3_bucket  = aws_s3_bucket.static_assets.bucket
   }
 }
 
