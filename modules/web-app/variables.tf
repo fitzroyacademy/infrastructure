@@ -22,3 +22,4 @@ variable "public_dns_name" {}
 variable "private_dns_zone_name" {}
 variable "rds_kms_key" {}
 variable "public_cert_arn" {}
+variable "public_cert_us_east_1_arn" {}
