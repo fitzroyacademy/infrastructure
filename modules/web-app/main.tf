@@ -414,6 +414,13 @@ resource "aws_ssm_parameter" "mailgun_api_url" {
 resource "aws_s3_bucket" "static_assets" {
   bucket = "${var.environment}-web-app-static-assets"
   policy = "${data.aws_iam_policy_document.static_assets.json}"
+    cors_rule {
+    allowed_headers = ["*"]
+    allowed_methods = ["GET", "HEAD"]
+    allowed_origins = ["*"]
+    expose_headers  = ["ETag"]
+    max_age_seconds = 3000
+  }
 }
 
 data "aws_iam_policy_document" "static_assets" {
@@ -455,8 +462,8 @@ resource "aws_cloudfront_distribution" "static_assets" {
   default_cache_behavior {
     viewer_protocol_policy = "redirect-to-https"
     compress               = true
-    allowed_methods        = ["GET", "HEAD"]
-    cached_methods         = ["GET", "HEAD"]
+    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
+    cached_methods         = ["GET", "HEAD", "OPTIONS"]
     target_origin_id       = "${var.environment}-web-app-static-assets"
     min_ttl                = 0
     default_ttl            = 86400
@@ -467,6 +474,11 @@ resource "aws_cloudfront_distribution" "static_assets" {
       cookies {
         forward = "none"
       }
+      headers = [
+        "Origin",
+        "Access-Control-Request-Headers",
+        "Access-Control-Request-Method",
+      ]
     }
   }
   restrictions {
