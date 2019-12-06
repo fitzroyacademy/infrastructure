@@ -89,6 +89,7 @@ resource "aws_iam_role_policy" "ci_policy" {
   name = "circleci_role_policy"
   role = aws_iam_role.circleci_cross_account_assume_role[0].id
   policy = data.aws_iam_policy_document.circleci_permissions[0].json
+  count = var.enable_circleci ? 1 : 0
 }
 
 resource "aws_kms_key" "rds" {
@@ -109,27 +110,28 @@ resource "aws_kms_key" "rds" {
       },
       "Action": "kms:*",
       "Resource": "*"
-    },
-    {
-      "Sid": "Allow use of the key",
-      "Effect": "Allow",
-      "Principal": {"AWS": [
-        "${module.alpha_env.web_app_task_role_arn}"
-      ]},
-      "Action": [
-        "kms:Encrypt",
-        "kms:Decrypt",
-        "kms:ReEncrypt*",
-        "kms:GenerateDataKey*",
-        "kms:DescribeKey"
-      ],
-      "Resource": "*"
     }
   ]
 }
 POLICY
 
 }
+
+    # {
+    #   "Sid": "Allow use of the key",
+    #   "Effect": "Allow",
+    #   "Principal": {"AWS": [
+    #     "${module.alpha_env.web_app_task_role_arn}"
+    #   ]},
+    #   "Action": [
+    #     "kms:Encrypt",
+    #     "kms:Decrypt",
+    #     "kms:ReEncrypt*",
+    #     "kms:GenerateDataKey*",
+    #     "kms:DescribeKey"
+    #   ],
+    #   "Resource": "*"
+    # }
 
 resource "aws_kms_alias" "rds" {
   name = "alias/rds"
@@ -219,17 +221,6 @@ resource "aws_route" "ec2_nat_gateway" {
   count = length(module.vpc.private_route_table_ids)
 }
 
-# resource "aws_acm_certificate" "public_cert_new" {
-#   domain_name = "new.fitzroyacademy.com"
-#   validation_method = "DNS"
-
-#   subject_alternative_names = ["*.new.fitzroyacademy.com", "*.alpha.new.fitzroyacademy.com"]
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }
-
 resource "aws_acm_certificate" "public_cert" {
   domain_name = "new.fitzroyacademy.com"
   validation_method = "DNS"
@@ -253,25 +244,6 @@ resource "aws_acm_certificate" "public_cert_new" {
   }
 }
 
-
-
-
-# resource "aws_route53_record" "public_cert_validation_new" {
-#   name = "${aws_acm_certificate.public_cert_new.domain_validation_options.0.resource_record_name}"
-#   type = "${aws_acm_certificate.public_cert_new.domain_validation_options.0.resource_record_type}"
-#   zone_id = "${aws_route53_zone.new.id}"
-#   records = ["${aws_acm_certificate.public_cert_new.domain_validation_options.0.resource_record_value}"]
-#   ttl = 60
-# }
-
-# resource "aws_route53_record" "public_cert_validation_new_1" {
-#   name = "${aws_acm_certificate.public_cert_new.domain_validation_options.1.resource_record_name}"
-#   type = "${aws_acm_certificate.public_cert_new.domain_validation_options.1.resource_record_type}"
-#   zone_id = "${aws_route53_zone.new.id}"
-#   records = ["${aws_acm_certificate.public_cert_new.domain_validation_options.1.resource_record_value}"]
-#   ttl = 60
-# }
-
 resource "aws_route53_record" "alpha" {
   name = "new.fitzroyacademy.com"
   type = "A"
@@ -282,11 +254,6 @@ resource "aws_route53_record" "alpha" {
     evaluate_target_health = true
   }
 }
-
-# resource "aws_acm_certificate_validation" "cert" {
-#   certificate_arn = "${aws_acm_certificate.public_cert.arn}"
-#   validation_record_fqdns = ["${aws_route53_record.public_cert_validation_new.fqdn}","${aws_route53_record.public_cert_validation_new_1.fqdn}"]
-# }
 
 module "alpha_env" {
   source = "../web-app"

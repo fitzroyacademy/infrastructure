@@ -58,5 +58,5 @@ module "cross_account_config" {
   account_name        = var.account_name
   region              = var.region
   public_cert_us_east_1_arn = aws_acm_certificate.public_cert_us_east_1.arn
-  enable_circleci     = false
+  enable_circleci     = true
 }
