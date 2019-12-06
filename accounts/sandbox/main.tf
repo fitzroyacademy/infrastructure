@@ -47,7 +47,7 @@ resource "aws_acm_certificate" "public_cert_us_east_1" {
 }
 
 module "cross_account_config" {
-  source = "../../../modules/cross-account-config"
+  source = "../../modules/cross-account-config"
 
   providers = {
     aws = aws.subaccount
@@ -58,4 +58,5 @@ module "cross_account_config" {
   account_name        = var.account_name
   region              = var.region
   public_cert_us_east_1_arn = aws_acm_certificate.public_cert_us_east_1.arn
+  enable_circleci     = false
 }

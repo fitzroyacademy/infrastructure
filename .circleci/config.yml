@@ -34,9 +34,9 @@ terraform_init: &terraform_init
   run:
     name: terraform init
     command: |
-      cd ./accounts/fitzroy
+      cd ./accounts/admin
       terraform init
-      cd ../subaccounts/sandbox
+      cd ../sandbox
       terraform init
 
 apply_job: &apply_job
@@ -49,9 +49,9 @@ apply_job: &apply_job
     - run:
         name: terraform apply
         command: |
-          cd ./accounts/fitzroy
+          cd ./accounts/admin
           terraform apply --auto-approve ./terraform.plan
-          cd ../subaccounts/sandbox
+          cd ../sandbox
           terraform apply --auto-approve ./terraform.plan
 jobs:
   plan:
@@ -63,9 +63,9 @@ jobs:
       - run:
           name: terraform plan
           command: |
-            cd ./accounts/fitzroy
+            cd ./accounts/admin
             terraform plan -out=./terraform.plan
-            cd ../subaccounts/sandbox
+            cd ../sandbox
             terraform plan -out=./terraform.plan
       - persist_to_workspace:
           root: *working_directory

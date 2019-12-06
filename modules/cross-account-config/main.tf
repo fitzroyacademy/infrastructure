@@ -46,7 +46,8 @@ resource "aws_iam_role_policy_attachment" "cross_account_administrator" {
 
 resource "aws_iam_role" "circleci_cross_account_assume_role" {
   name               = "CircleCICrossAccountRole"
-  assume_role_policy = data.aws_iam_policy_document.circleci_cross_account_assume_role_policy.json
+  assume_role_policy = data.aws_iam_policy_document.circleci_cross_account_assume_role_policy[0].json
+  count = var.enable_circleci ? 1 : 0
 }
 
 data "aws_iam_policy_document" "circleci_cross_account_assume_role_policy" {
@@ -60,6 +61,7 @@ data "aws_iam_policy_document" "circleci_cross_account_assume_role_policy" {
 
     actions = ["sts:AssumeRole"]
   }
+  count = var.enable_circleci ? 1 : 0
 }
 
 data "aws_iam_policy_document" "circleci_permissions" {
@@ -80,8 +82,14 @@ data "aws_iam_policy_document" "circleci_permissions" {
     actions   = ["ecs:UpdateService"]
     resources = ["arn:aws:ecs:*"]
   }
+  count = var.enable_circleci ? 1 : 0
 }
 
+resource "aws_iam_role_policy" "ci_policy" {
+  name = "circleci_role_policy"
+  role = aws_iam_role.circleci_cross_account_assume_role[0].id
+  policy = data.aws_iam_policy_document.circleci_permissions[0].json
+}
 
 resource "aws_kms_key" "rds" {
   description         = "Key for RDS instance passwords"
@@ -128,12 +136,6 @@ resource "aws_kms_alias" "rds" {
   target_key_id = aws_kms_key.rds.key_id
 }
 
-resource "aws_iam_role_policy" "ci_policy" {
-  name = "circleci_role_policy"
-  role = aws_iam_role.circleci_cross_account_assume_role.id
-
-  policy = data.aws_iam_policy_document.circleci_permissions.json
-}
 data "aws_availability_zones" "available" {
   state = "available"
 }
@@ -169,8 +171,7 @@ resource "aws_route53_zone" "new" {
 }
 
 module "vpc" {
-  source = "terraform-aws-modules/vpc/aws"
-  version = "~> v2.0"
+  source = "../vpc"
   name = "sandbox-vpc"
   cidr = "10.200.0.0/16"
 
