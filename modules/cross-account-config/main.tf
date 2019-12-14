@@ -92,185 +92,63 @@ resource "aws_iam_role_policy" "ci_policy" {
   count = var.enable_circleci ? 1 : 0
 }
 
-resource "aws_kms_key" "rds" {
-  description         = "Key for RDS instance passwords"
-  enable_key_rotation = true
-  policy              = <<POLICY
-{
-  "Id": "key-policy",
-  "Version": "2012-10-17",
-  "Statement": [
-    {
-      "Sid": "Enable IAM User Permissions",
-      "Effect": "Allow",
-      "Principal": {
-        "AWS": [
-          "arn:aws:iam::${var.account_number}:root"
-        ]
-      },
-      "Action": "kms:*",
-      "Resource": "*"
-    }
-  ]
-}
-POLICY
+# resource "aws_route53_zone" "ops" {
+#   name = "ops.fitzroyacademy.net"
 
-}
-
-    # {
-    #   "Sid": "Allow use of the key",
-    #   "Effect": "Allow",
-    #   "Principal": {"AWS": [
-    #     "${module.alpha_env.web_app_task_role_arn}"
-    #   ]},
-    #   "Action": [
-    #     "kms:Encrypt",
-    #     "kms:Decrypt",
-    #     "kms:ReEncrypt*",
-    #     "kms:GenerateDataKey*",
-    #     "kms:DescribeKey"
-    #   ],
-    #   "Resource": "*"
-    # }
-
-resource "aws_kms_alias" "rds" {
-  name = "alias/rds"
-  target_key_id = aws_kms_key.rds.key_id
-}
-
-data "aws_availability_zones" "available" {
-  state = "available"
-}
-
-resource "aws_ecs_cluster" "web-app-cluster" {
-  name = "sandbox-web-app-cluster"
-}
-
-resource "aws_ecr_repository" "fitzroy-docker-image-repo" {
-  name = "fitzroy-academy/web-app"
-}
-
-resource "aws_route53_zone" "ops" {
-  name = "ops.fitzroyacademy.net"
-
-  vpc {
-    vpc_id = module.vpc.vpc_id
-  }
-}
-
-data "aws_instance" "bastion" {
-  instance_id = "i-07888c2029e2adacc"
-  # this instance runs NAT:
-  # chmod a+x /etc/rc.local
-  # in rc.local:
-  # echo 1 > /proc/sys/net/ipv4/ip_forward
-  # iptables -t nat -A POSTROUTING -s 10.200.0.0/16 -j MASQUERADE
-  # source/destination check on the instance must be off
-}
-
-resource "aws_route53_zone" "new" {
-  name = "new.fitzroyacademy.com"
-}
-
-module "vpc" {
-  source = "../vpc"
-  name = "sandbox-vpc"
-  cidr = "10.200.0.0/16"
-
-  azs = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1], data.aws_availability_zones.available.names[2]]
-  private_subnets = ["10.200.0.0/24", "10.200.1.0/24", "10.200.2.0/24"]
-  public_subnets = ["10.200.3.0/24", "10.200.4.0/24", "10.200.5.0/24"]
-
-  enable_vpn_gateway = false
-  enable_nat_gateway = false
-  enable_s3_endpoint = false
-  single_nat_gateway = true
-  enable_ecr_dkr_endpoint = true
-  ecr_dkr_endpoint_private_dns_enabled = true
-  ecr_dkr_endpoint_security_group_ids = [aws_security_group.dkr_sg.id]
-  enable_dns_hostnames = true
-  # enable_logs_endpoint = true
-  # logs_endpoint_security_group_ids = ...
-  # logs_endpoint_private_dns_enabled = true
-}
-
-resource "aws_security_group" "dkr_sg" {
-  name = "ecs_dkr_sg"
-  description = "Allow HTTPS inbound traffic to dkr private endpoint"
-  vpc_id = module.vpc.vpc_id
-
-  ingress {
-    from_port = 443
-    to_port = 443
-    protocol = "tcp"
-    cidr_blocks = [module.vpc.vpc_cidr_block]
-  }
-
-  egress {
-    from_port = 0
-    to_port = 0
-    protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-resource "aws_route" "ec2_nat_gateway" {
-  destination_cidr_block = "0.0.0.0/0"
-  network_interface_id = data.aws_instance.bastion.network_interface_id
-  route_table_id = module.vpc.private_route_table_ids[count.index]
-  count = length(module.vpc.private_route_table_ids)
-}
-
-resource "aws_acm_certificate" "public_cert" {
-  domain_name = "new.fitzroyacademy.com"
-  validation_method = "DNS"
-
-  subject_alternative_names = ["*.new.fitzroyacademy.com"]
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+#   vpc {
+#     vpc_id = module.vpc.vpc_id
+#   }
+# }
 
 
-resource "aws_acm_certificate" "public_cert_new" {
-  domain_name = "new.fitzroyacademy.com"
-  validation_method = "DNS"
 
-  subject_alternative_names = ["*.new.fitzroyacademy.com", "*.alpha.new.fitzroyacademy.com"]
+# data "aws_instance" "bastion" {
+#   instance_id = "i-07888c2029e2adacc"
+#   # this instance runs NAT:
+#   # chmod a+x /etc/rc.local
+#   # in rc.local:
+#   # echo 1 > /proc/sys/net/ipv4/ip_forward
+#   # iptables -t nat -A POSTROUTING -s 10.200.0.0/16 -j MASQUERADE
+#   # source/destination check on the instance must be off
+# }
 
-  lifecycle {
-    create_before_destroy = true
-  }
-}
+# resource "aws_route53_zone" "new" {
+#   name = "new.fitzroyacademy.com"
+# }
 
-resource "aws_route53_record" "alpha" {
-  name = "new.fitzroyacademy.com"
-  type = "A"
-  zone_id = "${aws_route53_zone.new.id}"
-  alias {
-    name = "alpha.new.fitzroyacademy.com"
-    zone_id = "${aws_route53_zone.new.id}"
-    evaluate_target_health = true
-  }
-}
+# resource "aws_route53_record" "alpha" {
+#   name = "new.fitzroyacademy.com"
+#   type = "A"
+#   zone_id = "${aws_route53_zone.new.id}"
+#   alias {
+#     name = "alpha.new.fitzroyacademy.com"
+#     zone_id = "${aws_route53_zone.new.id}"
+#     evaluate_target_health = true
+#   }
+# }
 
-module "alpha_env" {
+module "web_app_core" {
   source = "../web-app"
-  environment = "alpha"
-  region = var.region
-  vpc_id = module.vpc.vpc_id
-  docker_tag = var.docker_tag
+  # bastion_instance_id = data.aws_instance.bastion.instance_id
   account_number = var.account_number
-  public_subnets = module.vpc.public_subnets
-  private_subnets = module.vpc.private_subnets
-  cluster_id = aws_ecs_cluster.web-app-cluster.id
-  bastion_private_ip = data.aws_instance.bastion.private_ip
-  public_dns_zone_id = aws_route53_zone.new.zone_id
-  private_dns_zone_id = aws_route53_zone.ops.zone_id
-  public_dns_name = aws_route53_zone.new.name
-  private_dns_zone_name = aws_route53_zone.ops.name
-  rds_kms_key = aws_kms_key.rds.key_id
-  public_cert_arn = aws_acm_certificate.public_cert.arn
-  public_cert_us_east_1_arn = var.public_cert_us_east_1_arn
 }
+
+# module "web_app_staging" {
+#   source = "../web-app-environment"
+#   environment = "staging"
+#   region = var.region
+#   vpc_id = module.vpc.vpc_id
+#   docker_tag = var.docker_tag
+#   account_number = var.account_number
+#   public_subnets = module.vpc.public_subnets
+#   private_subnets = module.vpc.private_subnets
+#   cluster_id = aws_ecs_cluster.web-app-cluster.id
+#   bastion_private_ip = data.aws_instance.bastion.private_ip
+#   public_dns_zone_id = aws_route53_zone.new.zone_id
+#   private_dns_zone_id = aws_route53_zone.ops.zone_id
+#   public_dns_name = aws_route53_zone.new.name
+#   private_dns_zone_name = aws_route53_zone.ops.name
+#   rds_kms_key = aws_kms_key.rds.key_id
+#   public_cert_arn = aws_acm_certificate.public_cert.arn
+#   public_cert_us_east_1_arn = var.public_cert_us_east_1_arn
+# }

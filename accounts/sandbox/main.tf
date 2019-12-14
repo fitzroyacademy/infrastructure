@@ -42,8 +42,7 @@ resource "aws_acm_certificate" "public_cert_us_east_1" {
   lifecycle {
     create_before_destroy = true
   }
-  provider = aws.us_east_1
-  
+  provider = aws.us_east_1 
 }
 
 module "cross_account_config" {

@@ -1,420 +1,185 @@
-# resource "aws_kms_key" "rds" {
-#   description         = "Key for RDS instance passwords"
-#   enable_key_rotation = true
-#   policy              = <<POLICY
-# {
-#   "Id": "key-policy",
-#   "Version": "2012-10-17",
-#   "Statement": [
-#     {
-#       "Sid": "Enable IAM User Permissions",
-#       "Effect": "Allow",
-#       "Principal": {
-#         "AWS": [
-#           "arn:aws:iam::${var.account_number}:root"
-#         ]
-#       },
-#       "Action": "kms:*",
-#       "Resource": "*"
-#     },
-#     {
-#       "Sid": "Allow use of the key",
-#       "Effect": "Allow",
-#       "Principal": {"AWS": [
-#         "${aws_iam_role.web_app_task_role.arn}"
-#       ]},
-#       "Action": [
-#         "kms:Encrypt",
-#         "kms:Decrypt",
-#         "kms:ReEncrypt*",
-#         "kms:GenerateDataKey*",
-#         "kms:DescribeKey"
-#       ],
-#       "Resource": "*"
-#     }
-#   ]
-# }
-# POLICY
-
+resource "aws_ecs_cluster" "web-app-cluster" {
+  name = "sandbox-web-app-cluster"
+}
+# data "aws_instance" "bastion" {
+#   instance_id = var.bastion_instance_id
 # }
 
-# resource "aws_iam_role" "web_app_task_role" {
-#   name               = "${var.environment}-WebAppECSTaskRole"
-#   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
-# }
-
-# resource "aws_iam_role_policy" "web_app_ecs_task_policy" {
-#   name   = "web_app_ecs_task_policy"
-#   role   = aws_iam_role.web_app_task_role.id
-#   policy = data.aws_iam_policy_document.web_app_task_role_policy.json
-# }
-
-# resource "aws_iam_role_policy_attachment" "xray-attach" {
-#   role       = aws_iam_role.web_app_task_role.name
-#   policy_arn = "arn:aws:iam::aws:policy/AWSXRayDaemonWriteAccess"
-# }
-
-# data "aws_iam_policy_document" "ecs_assume_role_policy" {
-#   statement {
-#     effect = "Allow"
-
-#     principals {
-#       type        = "Service"
-#       identifiers = ["ecs-tasks.amazonaws.com"]
-#     }
-
-#     actions = ["sts:AssumeRole"]
-#   }
-# }
-
-# data "aws_iam_policy_document" "web_app_task_role_policy" {
-#   statement {
-#     effect    = "Allow"
-#     actions   = ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
-#     resources = ["*"]
-#   }
-#   statement {
-#     effect    = "Allow"
-#     actions   = ["logs:PutLogEvents"]
-#     resources = ["arn:aws:logs:*:*:log-group:/ecs/*", "arn:aws:logs:*:*:log-group:/ecs/*:*:*"]
-#   }
-#   statement {
-#     effect    = "Allow"
-#     actions   = ["logs:CreateLogGroup", "logs:CreateLogStream"]
-#     resources = ["*"]
-#   }
-#   statement {
-#     effect  = "Allow"
-#     actions = ["secretsmanager:GetSecretValue"]
-#     resources = [
-#       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-db-password-??????",
-#       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-secret-key-??????",
-#       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-mailgun-api-key-??????"
-#     ]
-#   }
-#   statement {
-#     effect  = "Allow"
-#     actions = ["ssm:GetParameter","ssm:GetParameters"]
-#     resources = [
-#       aws_ssm_parameter.mailgun_api_url.arn
-#     ]
-#   }
-#   statement {
-#     effect    = "Allow"
-#     actions   = ["kms:Decrypt", "kms:Encrypt", "kms:ReEncryptTo", "kms:GenerateDataKey", "kms:DescribeKey", "kms:ReEncryptFrom"]
-#     resources = ["arn:aws:kms:${var.region}:${var.account_number}:key/${var.rds_kms_key}"]
-#   }
-#   statement {
-#     effect    = "Allow"
-#     actions   = ["s3:PutObject"]
-#     resources = ["arn:aws:s3:::assets.${var.environment}.${var.public_dns_name}/*"]
-#   }
-# }
-
-# data "template_file" "web_app_task_definition" {
-#   template = file("${path.module}/files/task_definition.json")
-#   vars = {
-#     region          = var.region
-#     environment     = var.environment
-#     secret_key_arn  = aws_secretsmanager_secret.secret-key.arn
-#     db_password_arn = aws_secretsmanager_secret.rds-password.arn
-#     docker_image    = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
-#     db_endpoint     = aws_route53_record.db.fqdn
-#     container_port  = var.container_port
-#     mailgun_api_key_arn = aws_secretsmanager_secret.mailgun-api-key.arn
-#     mailgun_url_arn = aws_ssm_parameter.mailgun_api_url.arn
-#     s3_bucket  = aws_s3_bucket.static_assets.bucket
-#   }
-# }
-
-# resource "aws_ecs_task_definition" "web-app-service" {
-#   family                   = "web-app-${var.environment}"
-#   requires_compatibilities = ["FARGATE"]
-#   container_definitions    = data.template_file.web_app_task_definition.rendered
-#   task_role_arn            = aws_iam_role.web_app_task_role.arn
-#   execution_role_arn       = aws_iam_role.web_app_task_role.arn
-#   network_mode             = "awsvpc"
-#   cpu                      = 256
-#   memory                   = 512
-# }
-
-# resource "aws_cloudwatch_log_group" "web-app-log-group" {
-#   name = "/ecs/web-app/${var.environment}"
-# }
-
-# resource "aws_cloudwatch_log_group" "xray-log-group" {
-#   name = "/ecs/web-app/${var.environment}/xray"
-# }
-
-# resource "aws_security_group" "alb_sg" {
-#   name        = "web_app_${var.environment}_alb_sg"
-#   description = "Allows public traffic to the ${var.environment} web app ALB"
-#   vpc_id      = var.vpc_id
-
-#   ingress {
-#     from_port        = 443
-#     to_port          = 443
-#     protocol         = "tcp"
-#     cidr_blocks      = ["0.0.0.0/0"]
-#     ipv6_cidr_blocks = ["::/0"]
-#   }
-#   ingress {
-#     from_port        = 80
-#     to_port          = 80
-#     protocol         = "tcp"
-#     cidr_blocks      = ["0.0.0.0/0"]
-#     ipv6_cidr_blocks = ["::/0"]
-
-#   }
-
-
-#   egress {
-#     from_port   = 0
-#     to_port     = 0
-#     protocol    = "-1"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
-# }
-
-# resource "aws_security_group" "xray_sg" {
-#   name        = "xray_${var.environment}_container_sg"
-#   description = "Attached to the xray instances"
-#   vpc_id      = var.vpc_id
-
-#   ingress {
-#     from_port       = 2000
-#     to_port         = 2000
-#     protocol        = "tcp"
-#     security_groups = [aws_security_group.container_sg.id]
-#   }
-
-#   ingress {
-#     from_port       = 2000
-#     to_port         = 2000
-#     protocol        = "udp"
-#     security_groups = [aws_security_group.container_sg.id]
-#   }
-
-#   egress {
-#     from_port   = 0
-#     to_port     = 0
-#     protocol    = "-1"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
-# }
-
-# resource "aws_security_group" "container_sg" {
-#   name        = "web_app_${var.environment}_container_sg"
-#   description = "Attached to the container instances"
-#   vpc_id      = var.vpc_id
-
-#   ingress {
-#     from_port       = var.container_port
-#     to_port         = var.container_port
-#     protocol        = "tcp"
-#     security_groups = [aws_security_group.alb_sg.id]
-#   }
-
-#   egress {
-#     from_port   = 0
-#     to_port     = 0
-#     protocol    = "-1"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
-# }
-
-# resource "aws_lb" "web_app_alb" {
-#   name               = "web-app-${var.environment}-alb"
-#   internal           = false
-#   load_balancer_type = "application"
-#   security_groups    = [aws_security_group.alb_sg.id]
-#   subnets            = var.public_subnets
-
-#   enable_deletion_protection = true
-#   # access_logs {
-#   #   bucket  = "${aws_s3_bucket.lb_logs.bucket}"
-#   #   prefix  = "test-lb"
-#   #   enabled = true
-#   # }
-
-#   tags = {
-#     environment = var.environment
-#   }
-# }
-
-# resource "aws_alb_target_group" "web-app" {
-#   name        = "web-app-${var.environment}-tg"
-#   port        = var.container_port
-#   protocol    = "HTTP"
-#   target_type = "ip"
-#   vpc_id      = var.vpc_id
-# }
-
-# resource "aws_ecs_service" "web_app" {
-#   name                              = "web-app-${var.environment}"
-#   cluster                           = var.cluster_id
-#   task_definition                   = aws_ecs_task_definition.web-app-service.arn
-#   launch_type                       = "FARGATE"
-#   health_check_grace_period_seconds = 30
-#   desired_count                     = 1
-#   depends_on = [
-#     aws_iam_role_policy.web_app_ecs_task_policy,
-#     aws_lb_listener.web_app_public
-#   ]
-
-#   load_balancer {
-#     target_group_arn = aws_alb_target_group.web-app.arn
-#     container_name   = aws_ecs_task_definition.web-app-service.family
-#     container_port   = var.container_port
-#   }
-#   network_configuration {
-#     subnets          = var.private_subnets
-#     security_groups  = [aws_security_group.container_sg.id]
-#     assign_public_ip = false
-#   }
-# }
-
-# resource "aws_lb_listener" "web_app_public" {
-#   load_balancer_arn = aws_lb.web_app_alb.arn
-#   port              = "80"
-#   protocol          = "HTTP"
-
-#   default_action {
-#     type = "redirect"
-#     redirect {
-#       host        = "#{host}"
-#       path        = "/#{path}"
-#       port        = "443"
-#       protocol    = "HTTPS"
-#       query       = "#{query}"
-#       status_code = "HTTP_301"
-#     }
-#     target_group_arn = aws_alb_target_group.web-app.arn
-#   }
-# }
-
-# resource "aws_lb_listener" "web_app_public_https" {
-#   load_balancer_arn = aws_lb.web_app_alb.arn
-#   port              = "443"
-#   protocol          = "HTTPS"
-#   ssl_policy        = "ELBSecurityPolicy-2016-08"
-#   certificate_arn   = var.public_cert_arn
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_alb_target_group.web-app.arn
-#   }
-# }
-
-# resource "aws_security_group" "db_sg" {
-#   name        = "web_app_${var.environment}_db_sg"
-#   description = "Allows local db traffic"
-#   vpc_id      = var.vpc_id
-
-#   ingress {
-#     from_port       = 5432
-#     to_port         = 5432
-#     protocol        = "tcp"
-#     security_groups = [aws_security_group.container_sg.id]
-#   }
-
-#   ingress {
-#     from_port   = 5432
-#     to_port     = 5432
-#     protocol    = "tcp"
-#     cidr_blocks = ["${var.bastion_private_ip}/32"]
-#   }
-
-#   egress {
-#     from_port   = 0
-#     to_port     = 0
-#     protocol    = "-1"
-#     cidr_blocks = ["0.0.0.0/0"]
-#   }
-# }
-
-# resource "aws_db_instance" "db" {
-#   allocated_storage      = 20
-#   storage_type           = "gp2"
-#   engine                 = "postgres"
-#   engine_version         = "10.6"
-#   skip_final_snapshot    = true
-#   instance_class         = "db.t2.micro"
-#   name                   = "fitzroyacademy"
-#   identifier             = "${var.environment}webapp"
-#   username               = "fitzroyacademy"
-#   multi_az               = false
-#   password               = aws_secretsmanager_secret_version.db-password.secret_string
-#   parameter_group_name   = "default.postgres10"
-#   db_subnet_group_name   = aws_db_subnet_group.web-app.name
-#   vpc_security_group_ids = [aws_security_group.db_sg.id]
-#   tags = {
-#     environment = var.environment
-#   }
-# }
-
-
-# resource "aws_route53_record" "app" {
-#   zone_id = var.public_dns_zone_id
-#   name    = "${var.environment}.${var.public_dns_name}"
-#   type    = "A"
-#   alias {
-#     name                   = aws_lb.web_app_alb.dns_name
-#     zone_id                = aws_lb.web_app_alb.zone_id
-#     evaluate_target_health = false
-#   }
-# }
-
-data "aws_instance" "bastion" {
-  instance_id = "i-07888c2029e2adacc"
-  # this instance runs NAT:
-  # chmod a+x /etc/rc.local
-  # in rc.local:
-  # echo 1 > /proc/sys/net/ipv4/ip_forward
-  # iptables -t nat -A POSTROUTING -s 10.200.0.0/16 -j MASQUERADE
-  # source/destination check on the instance must be off
+resource "aws_kms_alias" "rds" {
+  name = "alias/rds"
+  target_key_id = aws_kms_key.rds.key_id
 }
 
-# resource "aws_route53_record" "db" {
-#   zone_id = var.private_dns_zone_id
-#   name    = "db.${var.environment}.${var.private_dns_zone_name}"
-#   type    = "CNAME"
-#   ttl     = "60"
-#   records = [aws_db_instance.db.address]
-# }
 
-
-# resource "aws_db_subnet_group" "web-app" {
-#   name       = "web_app_${var.environment}"
-#   subnet_ids = var.private_subnets
-# }
-
-
-resource "aws_secretsmanager_secret" "rds-password" {
-  description = "web-app ${var.environment} rds password"
-  kms_key_id  = var.rds_kms_key
-  name        = "web-app-${var.environment}-db-password"
+resource "aws_ecr_repository" "fitzroy-docker-image-repo" {
+  name = "fitzroy-academy/web-app"
 }
+
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
+# data "aws_ami" "amazon-linux-2" {
+#  most_recent = true
+
+#  filter {
+#    name   = "owner-alias"
+#    values = ["amazon"]
+#  }
+
+#  filter {
+#    name   = "name"
+#    values = ["amzn2-ami-hvm*"]
+#  }
+# }
+
+resource "aws_eip" "bastion" {
+  instance = "${aws_instance.bastion.id}"
+  vpc      = true
+  depends_on = ["module.vpc"]
+}
+
+resource "aws_iam_role" "bastion" {
+  name = "test_role"
+
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ec2.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+
+  # tags = {
+  #   tag-key = "tag-value"
+  # }
+}
+
+resource "aws_iam_instance_profile" "bastion" {
+  name = "bastion"
+  role = aws_iam_role.bastion.name
+}
+resource "aws_key_pair" "rsavage" {
+  key_name   = "rsavage"
+  public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDGABR1H00bSoRk6iC9AGbGbA1MJI+l1tU75NllU81KRqLz9cd+kpznw+vyd5fJQDevwbSAlE3ga5al+koP7F3QY0W4uLtLSYnPyVxVnU1R7kL5jgPnTTWDLXK3cDtTHiLIp/qm+KGT2FPJ4iTO7bxGPPFxJsK04qREHK4GRcTCODQACAu6omiaUpw+LV/wv/P6spxvObyCG/FD5gPTW/cgCwEgrfM2xcUlfVmEoLvNRz/rJlJLpDm32104XeUvDCKtUYFeU+PmCVogKduMzy10gbCRlDlYvcY1ctJq165i9qcsTMBkZN1ij1/st6IaDDN95izSS9Nlh9NrEGrv9hdt"
+}
+
+resource "aws_security_group" "bastion" {
+  name        = "bastion"
+  description = "Allow bastion traffic"
+  vpc_id      = module.vpc.vpc_id
+
+  ingress {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  tags = {
+    Name = "bastion"
+  }
+}
+
+resource "aws_instance" "bastion" {
+  # ami                         = data.aws_ami.amazon-linux-2.id
+  ami = "ami-059d92a736f307c9c"
+  instance_type = "t2.nano"
+  subnet_id  = module.vpc.public_subnets[0]
+  key_name = aws_key_pair.rsavage.key_name
+  vpc_security_group_ids = [aws_security_group.bastion.id]
+  source_dest_check = false
+  iam_instance_profile = aws_iam_instance_profile.bastion.name
+  # user_data = "chmod a+x /etc/rc.local; echo 'echo 1 > /proc/sys/net/ipv4/ip_forward' >> /etc/rc.local; echo 'iptables -t nat -A POSTROUTING -s 10.200.0.0/16 -j MASQUERADE' >> /etc/rc.local"
+}
+
+resource "aws_security_group" "dkr_sg" {
+  name = "ecs_dkr_sg"
+  description = "Allow HTTPS inbound traffic to dkr private endpoint"
+  vpc_id = module.vpc.vpc_id
+
+  ingress {
+    from_port = 443
+    to_port = 443
+    protocol = "tcp"
+    cidr_blocks = [module.vpc.vpc_cidr_block]
+  }
+
+  egress {
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+resource "aws_route" "ec2_nat_gateway" {
+  destination_cidr_block = "0.0.0.0/0"
+  network_interface_id = aws_instance.bastion.primary_network_interface_id
+  route_table_id = module.vpc.private_route_table_ids[count.index]
+  count = length(module.vpc.private_route_table_ids)
+}
+
+module "vpc" {
+  source = "../vpc"
+  name = "web-app-vpc"
+  cidr = "10.200.0.0/16"
+
+  azs = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1], data.aws_availability_zones.available.names[2]]
+  private_subnets = ["10.200.0.0/24", "10.200.1.0/24", "10.200.2.0/24"]
+  public_subnets = ["10.200.3.0/24", "10.200.4.0/24", "10.200.5.0/24"]
+
+  enable_vpn_gateway = false
+  enable_nat_gateway = false
+  enable_s3_endpoint = false
+  single_nat_gateway = true
+  enable_ecr_dkr_endpoint = true
+  ecr_dkr_endpoint_private_dns_enabled = true
+  ecr_dkr_endpoint_security_group_ids = [aws_security_group.dkr_sg.id]
+  enable_dns_hostnames = true
+  # enable_logs_endpoint = true
+  # logs_endpoint_security_group_ids = ...
+  # logs_endpoint_private_dns_enabled = true
+}
+
+
+resource "aws_kms_key" "rds" {
+  description         = "Key for RDS instance passwords"
+  enable_key_rotation = true
+  policy              = <<POLICY
+{
+  "Id": "key-policy",
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Enable IAM User Permissions",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": [
+          "arn:aws:iam::${var.account_number}:root"
+        ]
+      },
+      "Action": "kms:*",
+      "Resource": "*"
+    }
+  ]
+}
+POLICY
+
+}
+
 
 resource "aws_secretsmanager_secret" "mailgun-api-key" {
-  description = "web-app mailgun api key"
-  name        = "web-app-mailgun-api-key"
-}
-
-
-resource "aws_secretsmanager_secret" "secret-key" {
-  description = "web-app ${var.environment} secret key"
-  name        = "web-app-${var.environment}-secret-key"
-}
-
-resource "random_string" "db-password" {
-  length  = 16
-  special = false
-}
-
-
-resource "random_string" "secret-key" {
-  length  = 16
-  special = false
+  description = "mailgun api key"
+  name        = "mailgun-api-key"
 }
 
 resource "aws_secretsmanager_secret_version" "mailgun-api-key" {
@@ -426,22 +191,6 @@ resource "aws_secretsmanager_secret_version" "mailgun-api-key" {
 }
 
 
-resource "aws_secretsmanager_secret_version" "db-password" {
-  lifecycle {
-    ignore_changes = [secret_string]
-  }
-  secret_id     = aws_secretsmanager_secret.rds-password.id
-  secret_string = chomp(random_string.db-password.result)
-}
-
-resource "aws_secretsmanager_secret_version" "secret-key" {
-  lifecycle {
-    ignore_changes = [secret_string]
-  }
-  secret_id     = aws_secretsmanager_secret.secret-key.id
-  secret_string = random_string.secret-key.result
-}
-
 resource "aws_ssm_parameter" "mailgun_api_url" {
   name  = "mailgun-api-url"
   type  = "String"
@@ -451,99 +200,13 @@ resource "aws_ssm_parameter" "mailgun_api_url" {
   }
 }
 
-# resource "aws_s3_bucket" "static_assets" {
-#   bucket = "${var.environment}-web-app-static-assets"
-#   policy = "${data.aws_iam_policy_document.static_assets.json}"
-#     cors_rule {
-#     allowed_headers = ["*"]
-#     allowed_methods = ["GET", "HEAD"]
-#     allowed_origins = ["*"]
-#     expose_headers  = ["ETag"]
-#     max_age_seconds = 3000
-#   }
-# }
+# resource "aws_acm_certificate" "public_cert_new" {
+#   domain_name = "new.fitzroyacademy.com"
+#   validation_method = "DNS"
 
-# data "aws_iam_policy_document" "static_assets" {
-#   statement {
-#     actions   = ["s3:GetObject"]
-#     resources = ["arn:aws:s3:::${var.environment}-web-app-static-assets/*"]
+#   subject_alternative_names = ["*.new.fitzroyacademy.com", "*.alpha.new.fitzroyacademy.com"]
 
-#     principals {
-#       type        = "AWS"
-#       identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
-#     }
-#   }
-
-#   statement {
-#     actions   = ["s3:ListBucket"]
-#     resources = ["arn:aws:s3:::${var.environment}-web-app-static-assets"]
-
-#     principals {
-#       type        = "AWS"
-#       identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
-#     }
-#   }
-# }
-
-
-# resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
-#   comment = "Origin Identity for static assets"
-# }
-
-# resource "aws_cloudfront_distribution" "static_assets" {
-#   origin {
-#       s3_origin_config {
-#     origin_access_identity = "${aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path}"
-#   }
-#     domain_name = aws_s3_bucket.static_assets.bucket_regional_domain_name
-#     origin_id   = "${var.environment}-web-app-static-assets"
-#   }
-#   enabled             = true
-#   default_cache_behavior {
-#     viewer_protocol_policy = "redirect-to-https"
-#     compress               = true
-#     allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-#     cached_methods         = ["GET", "HEAD", "OPTIONS"]
-#     target_origin_id       = "${var.environment}-web-app-static-assets"
-#     min_ttl                = 0
-#     default_ttl            = 86400
-#     max_ttl                = 31536000
-
-#     forwarded_values {
-#       query_string = false
-#       cookies {
-#         forward = "none"
-#       }
-#       headers = [
-#         "Origin",
-#         "Access-Control-Request-Headers",
-#         "Access-Control-Request-Method",
-#       ]
-#     }
-#   }
-#   restrictions {
-#     geo_restriction{
-#     restriction_type = "none"
-#   }
-#   }
-#   aliases = ["assets.${var.environment}.new.fitzroyacademy.com"]
-
-#   viewer_certificate {
-#     # cloudfront_default_certificate = true
-#     acm_certificate_arn = var.public_cert_us_east_1_arn
-#     ssl_support_method  = "sni-only"
-#   }
-# }
-
-
-# resource "aws_route53_record" "static_assets" {
-#   zone_id = var.public_dns_zone_id
-#   name    = "assets.${var.environment}.${var.public_dns_name}"
-#   type    = "A"
-
-#   alias {
-#     name                   = "${aws_cloudfront_distribution.static_assets.domain_name}"
-#     zone_id                = "${aws_cloudfront_distribution.static_assets.hosted_zone_id}"
-#     evaluate_target_health = false
+#   lifecycle {
+#     create_before_destroy = true
 #   }
 # }
