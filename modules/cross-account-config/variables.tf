@@ -15,9 +15,9 @@ variable "docker_tag" {
   default = "latest"
 }
 
-variable "public_cert_us_east_1_arn" {
+# variable "public_cert_us_east_1_arn" {
   
-}
+# }
 
 variable "enable_circleci" {
   default = false

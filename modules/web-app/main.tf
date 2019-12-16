@@ -1,12 +1,10 @@
 resource "aws_ecs_cluster" "web-app-cluster" {
-  name = "sandbox-web-app-cluster"
+  name = "web-app"
   tags = {
     cost-tracking = "web-app"
+    tf-web-app-ecs-cluster = "true"
   }
 }
-# data "aws_instance" "bastion" {
-#   instance_id = var.bastion_instance_id
-# }
 
 resource "aws_kms_alias" "rds" {
   name = "alias/rds"
@@ -69,9 +67,6 @@ EOF
   tags = {
     cost-tracking = "web-app"
   }
-  # tags = {
-  #   tf-web-app-bastion-public-ip = "tag-value"
-  # }
 }
 
 resource "aws_iam_instance_profile" "bastion" {
@@ -149,7 +144,7 @@ resource "aws_route" "ec2_nat_gateway" {
 
 module "vpc" {
   source = "../vpc"
-  name = "web-app-vpc"
+  name = "web-app"
   cidr = "10.200.0.0/16"
 
   azs = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1], data.aws_availability_zones.available.names[2]]
@@ -177,9 +172,6 @@ module "vpc" {
   ecr_dkr_endpoint_private_dns_enabled = true
   ecr_dkr_endpoint_security_group_ids = [aws_security_group.dkr_sg.id]
   enable_dns_hostnames = true
-  # enable_logs_endpoint = true
-  # logs_endpoint_security_group_ids = ...
-  # logs_endpoint_private_dns_enabled = true
 }
 
 
@@ -240,14 +232,6 @@ resource "aws_ssm_parameter" "mailgun_api_url" {
   }
 }
 
-resource "aws_route53_zone" "public" {
-  name = var.public_dns_name
-  tags = {
-    cost-tracking = "web-app"
-    tf-web-app-public-zone = "true"
-  }
-}
-
 resource "aws_route53_zone" "private" {
   name = var.private_dns_name
   tags = {
@@ -268,14 +252,3 @@ resource "aws_route53_zone" "private_reserve" {
     cost-tracking = "web-app"
   }
 }
-
-# resource "aws_acm_certificate" "public_cert_new" {
-#   domain_name = "new.fitzroyacademy.com"
-#   validation_method = "DNS"
-
-#   subject_alternative_names = ["*.new.fitzroyacademy.com", "*.alpha.new.fitzroyacademy.com"]
-
-#   lifecycle {
-#     create_before_destroy = true
-#   }
-# }

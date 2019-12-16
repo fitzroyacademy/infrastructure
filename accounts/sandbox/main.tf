@@ -33,21 +33,6 @@ provider "aws" {
   }
 }
 
-resource "aws_acm_certificate" "public_cert_us_east_1" {
-  domain_name = "new.fitzroyacademy.com"
-  validation_method = "DNS"
-
-  subject_alternative_names = ["*.new.fitzroyacademy.com", "*.alpha.new.fitzroyacademy.com"]
-
-  lifecycle {
-    create_before_destroy = true
-  }
-  provider = aws.us_east_1 
-  tags = {
-    cost-tracking = "web-app"
-  }
-}
-
 module "cross_account_config" {
   source = "../../modules/cross-account-config"
 
@@ -60,7 +45,6 @@ module "cross_account_config" {
   account_number      = var.account_number
   account_name        = var.account_name
   region              = var.region
-  public_cert_us_east_1_arn = aws_acm_certificate.public_cert_us_east_1.arn
   enable_circleci     = true
 
 }
