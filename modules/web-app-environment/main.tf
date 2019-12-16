@@ -180,19 +180,19 @@ data "template_file" "web_app_task_definition" {
   }
 }
 
-# resource "aws_ecs_task_definition" "web-app-service" {
-#   family                   = "web-app-${var.environment}"
-#   requires_compatibilities = ["FARGATE"]
-#   container_definitions    = data.template_file.web_app_task_definition.rendered
-#   task_role_arn            = aws_iam_role.web_app_task_role.arn
-#   execution_role_arn       = aws_iam_role.web_app_task_role.arn
-#   network_mode             = "awsvpc"
-#   cpu                      = 256
-#   memory                   = 512
-#   tags {
-#     environment = var.environment
-#   }
-# }
+resource "aws_ecs_task_definition" "web-app-service" {
+  family                   = "web-app-${var.environment}"
+  requires_compatibilities = ["FARGATE"]
+  container_definitions    = data.template_file.web_app_task_definition.rendered
+  task_role_arn            = aws_iam_role.web_app_task_role.arn
+  execution_role_arn       = aws_iam_role.web_app_task_role.arn
+  network_mode             = "awsvpc"
+  cpu                      = 256
+  memory                   = 512
+  tags = {
+    environment = var.environment
+  }
+}
 
 resource "aws_cloudwatch_log_group" "web-app-log-group" {
   name = "/ecs/web-app/${var.environment}"

@@ -106,6 +106,6 @@ module "web_app_live" {
   public_dns_name = "fitzroy.academy"
   private_dns_name = "fitzroy.io"
   region = var.region
-  docker_tag = var.docker_tag
+  docker_tag = var.live_docker_tag
   account_number = var.account_number
 }

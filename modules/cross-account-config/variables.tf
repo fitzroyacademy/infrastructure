@@ -11,7 +11,7 @@ variable "region" {
 
 }
 
-variable "docker_tag" {
+variable "live_docker_tag" {
   default = "latest"
 }
 

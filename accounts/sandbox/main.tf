@@ -46,5 +46,5 @@ module "cross_account_config" {
   account_name        = var.account_name
   region              = var.region
   enable_circleci     = true
-
+  live_docker_tag     = var.live_docker_tag
 }
