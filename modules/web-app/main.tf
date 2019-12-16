@@ -240,6 +240,35 @@ resource "aws_ssm_parameter" "mailgun_api_url" {
   }
 }
 
+resource "aws_route53_zone" "public" {
+  name = var.public_dns_name
+  tags = {
+    cost-tracking = "web-app"
+    tf-web-app-public-zone = "true"
+  }
+}
+
+resource "aws_route53_zone" "private" {
+  name = var.private_dns_name
+  tags = {
+    cost-tracking = "web-app"
+    tf-web-app-private-zone = "true"
+  }
+  vpc {
+    vpc_id = module.vpc.vpc_id
+  }
+}
+
+# Create a zone for the "private" zone, but don't put any records in it.
+# This will ensure nobody can hit us in case private DNS resolution ever
+# fails.
+resource "aws_route53_zone" "private_reserve" {
+  name = var.private_dns_name
+  tags = {
+    cost-tracking = "web-app"
+  }
+}
+
 # resource "aws_acm_certificate" "public_cert_new" {
 #   domain_name = "new.fitzroyacademy.com"
 #   validation_method = "DNS"

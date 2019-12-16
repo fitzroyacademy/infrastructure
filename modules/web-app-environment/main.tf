@@ -1,11 +1,3 @@
-data "aws_route53_zone" "public" {
-  zone_id = var.public_zone_id
-}
-
-data "aws_route53_zone" "private" {
-  zone_id = var.private_zone_id
-}
-
 data "aws_acm_certificate" "public" {
   domain = var.public_dns_name
 }
