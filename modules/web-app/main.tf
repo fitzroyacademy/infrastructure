@@ -1,5 +1,8 @@
 resource "aws_ecs_cluster" "web-app-cluster" {
   name = "sandbox-web-app-cluster"
+  tags = {
+    cost-tracking = "web-app"
+  }
 }
 # data "aws_instance" "bastion" {
 #   instance_id = var.bastion_instance_id
@@ -13,6 +16,9 @@ resource "aws_kms_alias" "rds" {
 
 resource "aws_ecr_repository" "fitzroy-docker-image-repo" {
   name = "fitzroy-academy/web-app"
+  tags = {
+    cost-tracking = "web-app"
+  }
 }
 
 data "aws_availability_zones" "available" {
@@ -37,6 +43,9 @@ resource "aws_eip" "bastion" {
   instance = "${aws_instance.bastion.id}"
   vpc      = true
   depends_on = ["module.vpc"]
+  tags = {
+    cost-tracking = "web-app"
+  }
 }
 
 resource "aws_iam_role" "bastion" {
@@ -57,9 +66,11 @@ resource "aws_iam_role" "bastion" {
   ]
 }
 EOF
-
+  tags = {
+    cost-tracking = "web-app"
+  }
   # tags = {
-  #   tag-key = "tag-value"
+  #   tf-web-app-bastion-public-ip = "tag-value"
   # }
 }
 
@@ -86,6 +97,7 @@ resource "aws_security_group" "bastion" {
 
   tags = {
     Name = "bastion"
+    cost-tracking = "web-app"
   }
 }
 
@@ -98,6 +110,10 @@ resource "aws_instance" "bastion" {
   vpc_security_group_ids = [aws_security_group.bastion.id]
   source_dest_check = false
   iam_instance_profile = aws_iam_instance_profile.bastion.name
+  tags = {
+    tf-web-app-bastion = "true"
+    cost-tracking = "web-app"
+  }
   # user_data = "chmod a+x /etc/rc.local; echo 'echo 1 > /proc/sys/net/ipv4/ip_forward' >> /etc/rc.local; echo 'iptables -t nat -A POSTROUTING -s 10.200.0.0/16 -j MASQUERADE' >> /etc/rc.local"
 }
 
@@ -119,6 +135,9 @@ resource "aws_security_group" "dkr_sg" {
     protocol = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  tags = {
+    cost-tracking = "web-app"
+  }
 }
 
 resource "aws_route" "ec2_nat_gateway" {
@@ -136,6 +155,19 @@ module "vpc" {
   azs = [data.aws_availability_zones.available.names[0], data.aws_availability_zones.available.names[1], data.aws_availability_zones.available.names[2]]
   private_subnets = ["10.200.0.0/24", "10.200.1.0/24", "10.200.2.0/24"]
   public_subnets = ["10.200.3.0/24", "10.200.4.0/24", "10.200.5.0/24"]
+
+  public_subnet_tags = {
+    tf-public-subnet = "true"
+  }
+  private_subnet_tags = {
+    tf-private-subnet = "true"
+  }
+  vpc_tags = {
+    tf-web-app-vpc = "true"
+  }
+  tags = {
+    cost-tracking = "web-app"
+  }
 
   enable_vpn_gateway = false
   enable_nat_gateway = false
@@ -173,13 +205,18 @@ resource "aws_kms_key" "rds" {
   ]
 }
 POLICY
-
+  tags = {
+    cost-tracking = "web-app"
+  }
 }
 
 
 resource "aws_secretsmanager_secret" "mailgun-api-key" {
   description = "mailgun api key"
   name        = "mailgun-api-key"
+  tags = {
+    cost-tracking = "web-app"
+  }
 }
 
 resource "aws_secretsmanager_secret_version" "mailgun-api-key" {
@@ -197,6 +234,9 @@ resource "aws_ssm_parameter" "mailgun_api_url" {
   value = "initial"
   lifecycle {
     ignore_changes = [value]
+  }
+  tags = {
+    cost-tracking = "web-app"
   }
 }
 

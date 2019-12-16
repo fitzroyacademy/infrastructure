@@ -131,24 +131,20 @@ module "web_app_core" {
   source = "../web-app"
   # bastion_instance_id = data.aws_instance.bastion.instance_id
   account_number = var.account_number
+  public_dns_name = "fitzroy.academy"
+  private_dns_name = "fitzroy.io"
 }
 
 # module "web_app_staging" {
 #   source = "../web-app-environment"
 #   environment = "staging"
 #   region = var.region
-#   vpc_id = module.vpc.vpc_id
 #   docker_tag = var.docker_tag
 #   account_number = var.account_number
-#   public_subnets = module.vpc.public_subnets
-#   private_subnets = module.vpc.private_subnets
-#   cluster_id = aws_ecs_cluster.web-app-cluster.id
-#   bastion_private_ip = data.aws_instance.bastion.private_ip
-#   public_dns_zone_id = aws_route53_zone.new.zone_id
-#   private_dns_zone_id = aws_route53_zone.ops.zone_id
-#   public_dns_name = aws_route53_zone.new.name
-#   private_dns_zone_name = aws_route53_zone.ops.name
-#   rds_kms_key = aws_kms_key.rds.key_id
-#   public_cert_arn = aws_acm_certificate.public_cert.arn
+#   cluster_id = module.web_app_core.cluster_id
+#   bastion_private_ip = module.web_app_core.bastion_private_ip
+#   public_dns_zone_id = module.web_app_core.public_dns_zone
+#   private_dns_zone_id = module.web_app_core.private_dns_zone
+#   # public_cert_arn = aws_acm_certificate.public_cert.arn
 #   public_cert_us_east_1_arn = var.public_cert_us_east_1_arn
 # }

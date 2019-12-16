@@ -1,5 +1,3 @@
-variable "bastion_instance_id" {
-	default = ""
-}
-
-variable "account_number"{}
+variable "account_number" {}
+variable "private_dns_name" {}
+variable "public_dns_name" {}

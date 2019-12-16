@@ -43,6 +43,9 @@ resource "aws_acm_certificate" "public_cert_us_east_1" {
     create_before_destroy = true
   }
   provider = aws.us_east_1 
+  tags = {
+    cost-tracking = "web-app"
+  }
 }
 
 module "cross_account_config" {
@@ -50,6 +53,7 @@ module "cross_account_config" {
 
   providers = {
     aws = aws.subaccount
+    us_east_1 = aws.us_east_1
   }
 
   main_account_number = data.terraform_remote_state.main_state.outputs.account_number
@@ -58,4 +62,5 @@ module "cross_account_config" {
   region              = var.region
   public_cert_us_east_1_arn = aws_acm_certificate.public_cert_us_east_1.arn
   enable_circleci     = true
+
 }

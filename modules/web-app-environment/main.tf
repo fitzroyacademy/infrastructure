@@ -1,3 +1,55 @@
+data "aws_route53_zone" "public" {
+  zone_id = var.public_zone_id
+}
+
+data "aws_route53_zone" "private" {
+  zone_id = var.private_zone_id
+}
+
+data "aws_acm_certificate" "public" {
+  domain = var.public_dns_name
+}
+
+data "vpc" "web-app" {
+  tags = {
+    tf-web-app-vpc = "true"
+  }
+}
+data "aws_subnet_ids" "public" {
+  tags = {
+    tf-public-subnets = "true"
+  }
+}
+
+data "aws_subnet_ids" "private" {
+  tags = {
+    tf-private-subnets = "true"
+  }
+}
+
+data "aws_route53_zone" "public" {
+  tags = {
+    tf-web-app-public-zone = "true"
+  }
+}
+
+data "aws_route53_zone" "private" {
+  tags = {
+    tf-web-app-private-zone = "true"
+  }
+}
+
+data "aws_instance" "bastion" {
+  tags = {
+    tf-web-app-bastion = "true"
+  }
+}
+
+locals {
+  db_endpoint = "db.${var.environment}.${data.aws_route53_zone.private.name}"
+  assets_dns_name = "assets.${var.public_dns_name}"
+}
+
 resource "aws_kms_key" "rds" {
   description         = "Key for ${var.environment} RDS instance passwords"
   enable_key_rotation = true
@@ -41,6 +93,9 @@ POLICY
 resource "aws_iam_role" "web_app_task_role" {
   name               = "${var.environment}-WebAppECSTaskRole"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
+  tags {
+    environment = var.environment
+  }
 }
 
 resource "aws_iam_role_policy" "web_app_ecs_task_policy" {
@@ -107,7 +162,7 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
   statement {
     effect    = "Allow"
     actions   = ["s3:PutObject"]
-    resources = ["arn:aws:s3:::assets.${var.environment}.${var.public_dns_name}/*"]
+    resources = ["arn:aws:s3:::${aws_s3_bucket.static_assets.bucket}/*"]
   }
 }
 
@@ -136,15 +191,24 @@ resource "aws_ecs_task_definition" "web-app-service" {
   network_mode             = "awsvpc"
   cpu                      = 256
   memory                   = 512
+  tags {
+    environment = var.environment
+  }
 }
 
 resource "aws_cloudwatch_log_group" "web-app-log-group" {
   name = "/ecs/web-app/${var.environment}"
+    tags {
+    environment = var.environment
+  }
 }
 
-resource "aws_cloudwatch_log_group" "xray-log-group" {
-  name = "/ecs/web-app/${var.environment}/xray"
-}
+# resource "aws_cloudwatch_log_group" "xray-log-group" {
+#   name = "/ecs/web-app/${var.environment}/xray"
+#   tags {
+#     environment = var.environment
+#   }
+# }
 
 resource "aws_security_group" "alb_sg" {
   name        = "web_app_${var.environment}_alb_sg"
@@ -173,6 +237,9 @@ resource "aws_security_group" "alb_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags {
+    environment = var.environment
   }
 }
 
@@ -221,6 +288,9 @@ resource "aws_security_group" "container_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+  tags {
+    environment = var.environment
+  }
 }
 
 resource "aws_lb" "web_app_alb" {
@@ -228,7 +298,7 @@ resource "aws_lb" "web_app_alb" {
   internal           = false
   load_balancer_type = "application"
   security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = var.public_subnets
+  subnets            = data.aws_subnet_ids.public
 
   enable_deletion_protection = true
   # access_logs {
@@ -268,9 +338,12 @@ resource "aws_ecs_service" "web_app" {
     container_port   = var.container_port
   }
   network_configuration {
-    subnets          = var.private_subnets
+    subnets          = data.aws_subnet_ids.private
     security_groups  = [aws_security_group.container_sg.id]
     assign_public_ip = false
+  }
+  tags {
+    environment = var.environment
   }
 }
 
@@ -298,7 +371,7 @@ resource "aws_lb_listener" "web_app_public_https" {
   port              = "443"
   protocol          = "HTTPS"
   ssl_policy        = "ELBSecurityPolicy-2016-08"
-  certificate_arn   = var.public_cert_arn
+  certificate_arn   = data.aws_acm_certificate.public.arn
   default_action {
     type             = "forward"
     target_group_arn = aws_alb_target_group.web-app.arn
@@ -329,6 +402,9 @@ resource "aws_security_group" "db_sg" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+      tags {
+    environment = var.environment
   }
 }
 
@@ -366,7 +442,7 @@ resource "aws_route53_record" "app" {
 
 resource "aws_route53_record" "db" {
   zone_id = var.private_dns_zone_id
-  name    = "db.${var.environment}.${var.private_dns_zone_name}"
+  name    = local.db_endpoint
   type    = "CNAME"
   ttl     = "60"
   records = [aws_db_instance.db.address]
@@ -375,13 +451,13 @@ resource "aws_route53_record" "db" {
 
 resource "aws_db_subnet_group" "web-app" {
   name       = "web_app_${var.environment}"
-  subnet_ids = var.private_subnets
+  subnet_ids = data.aws_subnet_ids.private
 }
 
 
 resource "aws_secretsmanager_secret" "rds-password" {
   description = "web-app ${var.environment} rds password"
-  kms_key_id  = var.rds_kms_key
+  kms_key_id  = aws_kms_key.rds
   name        = "web-app-${var.environment}-db-password"
 }
 
@@ -495,7 +571,7 @@ resource "aws_cloudfront_distribution" "static_assets" {
     restriction_type = "none"
   }
   }
-  aliases = ["assets.${var.public_dns_name}"]
+  aliases = [local.assets_dns_name]
 
   viewer_certificate {
     # cloudfront_default_certificate = true
@@ -507,7 +583,7 @@ resource "aws_cloudfront_distribution" "static_assets" {
 
 resource "aws_route53_record" "static_assets" {
   zone_id = var.public_dns_zone_id
-  name    = "assets.${var.public_dns_name}"
+  name    = local.assets_dns_name
   type    = "A"
 
   alias {
