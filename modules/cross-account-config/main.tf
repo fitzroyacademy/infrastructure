@@ -94,7 +94,6 @@ resource "aws_iam_role_policy" "ci_policy" {
 
 module "web_app_core" {
   source = "../web-app"
-  # bastion_instance_id = data.aws_instance.bastion.instance_id
   account_number = var.account_number
   private_dns_name = "fitzroy.io"
   environments = {"live" = "fitzroy.academy"}

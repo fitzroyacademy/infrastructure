@@ -164,14 +164,15 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
   }
 }
 
-data "template_file" "web_app_task_definition" {
+data "template_file" "web_app_task_definition_base" {
   template = file("${path.module}/files/task_definition.json")
   vars = {
     region          = var.region
     environment     = var.environment
     secret_key_arn  = aws_secretsmanager_secret.secret-key.arn
     db_password_arn = aws_secretsmanager_secret.rds-password.arn
-    docker_image    = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
+    docker_image = "\${docker_image}"
+    # docker_image    = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
     db_endpoint     = local.db_endpoint
     container_port  = var.container_port
     mailgun_api_key_arn = data.aws_secretsmanager_secret.mailgun-api-key.arn
@@ -180,15 +181,50 @@ data "template_file" "web_app_task_definition" {
   }
 }
 
+data "template_file" "web_app_task_definition_initial" {
+  template = data.template_file.web_app_task_definition_base.rendered
+  vars = {
+    docker_image    = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
+  }
+}
+
+resource "aws_s3_bucket_object" "task_definition" {
+  bucket = "web-app-deploy-artifacts"
+  key    = "/${var.environment}/task_definition.json"
+  content = data.template_file.web_app_task_definition_base.rendered
+}
+
+locals {
+  deploy_parameters = {
+    "family" = "web-app-${var.environment}",
+    "task-role-arn" = aws_iam_role.web_app_task_role.arn,
+    "execution-role-arn" = aws_iam_role.web_app_task_role.arn,
+    "network-mode" = "awsvpc",
+    "requires-compatibilities" = "FARGATE",
+    "cpu" = 256,
+    "memory" = 512,
+  }
+}
+
+resource "aws_ssm_parameter" "task_definition_parameters" {
+  name  = "/web-app/${var.environment}/task-parameters/${keys(local.deploy_parameters)[count.index]}"
+  type  = "String"
+  value = values(local.deploy_parameters)[count.index]
+  tags = {
+    cost-tracking = "web-app"
+  }
+  count = length(local.deploy_parameters)
+}
+
 resource "aws_ecs_task_definition" "web-app-service" {
-  family                   = "web-app-${var.environment}"
-  requires_compatibilities = ["FARGATE"]
-  container_definitions    = data.template_file.web_app_task_definition.rendered
-  task_role_arn            = aws_iam_role.web_app_task_role.arn
-  execution_role_arn       = aws_iam_role.web_app_task_role.arn
-  network_mode             = "awsvpc"
-  cpu                      = 256
-  memory                   = 512
+  family                   = local.deploy_parameters.family
+  requires_compatibilities = [local.deploy_parameters.requires-compatibilities]
+  container_definitions    = data.template_file.web_app_task_definition_initial.rendered
+  task_role_arn            = local.deploy_parameters.task-role-arn
+  execution_role_arn       = local.deploy_parameters.execution-role-arn
+  network_mode             = local.deploy_parameters.network-mode
+  cpu                      = local.deploy_parameters.cpu
+  memory                   = local.deploy_parameters.memory
   tags = {
     environment = var.environment
   }

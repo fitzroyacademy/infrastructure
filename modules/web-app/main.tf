@@ -252,3 +252,11 @@ resource "aws_route53_zone" "private_reserve" {
     cost-tracking = "web-app"
   }
 }
+
+resource "aws_s3_bucket" "deploy_artifacts" {
+  bucket = "web-app-deploy-artifacts"
+  acl    = "private"
+  tags = {
+    cost-tracking = "web-app"
+  }
+}
