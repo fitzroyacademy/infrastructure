@@ -16,7 +16,7 @@ variable "live_docker_tag" {
 }
 
 # variable "public_cert_us_east_1_arn" {
-  
+
 # }
 
 variable "enable_circleci" {

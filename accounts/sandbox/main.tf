@@ -25,7 +25,7 @@ provider "aws" {
 }
 
 provider "aws" {
-  alias = "us_east_1"
+  alias  = "us_east_1"
   region = "us-east-1"
   assume_role {
     role_arn     = "arn:aws:iam::${var.account_number}:role/TerraformCrossAccountRole"
@@ -37,7 +37,7 @@ module "cross_account_config" {
   source = "../../modules/cross-account-config"
 
   providers = {
-    aws = aws.subaccount
+    aws       = aws.subaccount
     us_east_1 = aws.us_east_1
   }
 

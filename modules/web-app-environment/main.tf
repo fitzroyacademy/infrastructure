@@ -14,7 +14,7 @@ data "aws_subnet_ids" "private" {
   vpc_id = data.aws_vpc.web-app.id
   tags = {
     tf-private-subnet = "true"
-  } 
+  }
 }
 
 data "aws_ssm_parameter" "mailgun_api_url" {
@@ -44,7 +44,7 @@ data "aws_ecs_cluster" "web-app" {
 }
 
 locals {
-  db_endpoint = "db.${var.environment}.${data.aws_route53_zone.private.name}"
+  db_endpoint     = "db.${var.environment}.${data.aws_route53_zone.private.name}"
   assets_dns_name = "assets.${var.public_dns_name}"
 }
 
@@ -89,7 +89,7 @@ POLICY
 }
 
 resource "aws_iam_role" "web_app_task_role" {
-  name               = "${var.environment}-WebAppECSTaskRole"
+  name = "${var.environment}-WebAppECSTaskRole"
   assume_role_policy = data.aws_iam_policy_document.ecs_assume_role_policy.json
   tags = {
     environment = var.environment
@@ -97,8 +97,8 @@ resource "aws_iam_role" "web_app_task_role" {
 }
 
 resource "aws_iam_role_policy" "web_app_ecs_task_policy" {
-  name   = "web_app_ecs_task_policy"
-  role   = aws_iam_role.web_app_task_role.id
+  name = "web_app_ecs_task_policy"
+  role = aws_iam_role.web_app_task_role.id
   policy = data.aws_iam_policy_document.web_app_task_role_policy.json
 }
 
@@ -112,7 +112,7 @@ data "aws_iam_policy_document" "ecs_assume_role_policy" {
     effect = "Allow"
 
     principals {
-      type        = "Service"
+      type = "Service"
       identifiers = ["ecs-tasks.amazonaws.com"]
     }
 
@@ -122,22 +122,22 @@ data "aws_iam_policy_document" "ecs_assume_role_policy" {
 
 data "aws_iam_policy_document" "web_app_task_role_policy" {
   statement {
-    effect    = "Allow"
-    actions   = ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
+    effect = "Allow"
+    actions = ["ecr:GetAuthorizationToken", "ecr:BatchCheckLayerAvailability", "ecr:BatchGetImage", "ecr:GetDownloadUrlForLayer"]
     resources = ["*"]
   }
   statement {
-    effect    = "Allow"
-    actions   = ["logs:PutLogEvents"]
+    effect = "Allow"
+    actions = ["logs:PutLogEvents"]
     resources = ["arn:aws:logs:*:*:log-group:/ecs/*", "arn:aws:logs:*:*:log-group:/ecs/*:*:*"]
   }
   statement {
-    effect    = "Allow"
-    actions   = ["logs:CreateLogGroup", "logs:CreateLogStream"]
+    effect = "Allow"
+    actions = ["logs:CreateLogGroup", "logs:CreateLogStream"]
     resources = ["*"]
   }
   statement {
-    effect  = "Allow"
+    effect = "Allow"
     actions = ["secretsmanager:GetSecretValue"]
     resources = [
       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-db-password-??????",
@@ -146,20 +146,20 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
     ]
   }
   statement {
-    effect  = "Allow"
-    actions = ["ssm:GetParameter","ssm:GetParameters"]
+    effect = "Allow"
+    actions = ["ssm:GetParameter", "ssm:GetParameters"]
     resources = [
       data.aws_ssm_parameter.mailgun_api_url.arn
     ]
   }
   statement {
-    effect    = "Allow"
-    actions   = ["kms:Decrypt", "kms:Encrypt", "kms:ReEncryptTo", "kms:GenerateDataKey", "kms:DescribeKey", "kms:ReEncryptFrom"]
+    effect = "Allow"
+    actions = ["kms:Decrypt", "kms:Encrypt", "kms:ReEncryptTo", "kms:GenerateDataKey", "kms:DescribeKey", "kms:ReEncryptFrom"]
     resources = [aws_kms_key.rds.arn]
   }
   statement {
-    effect    = "Allow"
-    actions   = ["s3:PutObject"]
+    effect = "Allow"
+    actions = ["s3:PutObject"]
     resources = ["arn:aws:s3:::${aws_s3_bucket.static_assets.bucket}/*"]
   }
 }
@@ -167,30 +167,30 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
 data "template_file" "web_app_task_definition_base" {
   template = file("${path.module}/files/task_definition.json")
   vars = {
-    region          = var.region
-    environment     = var.environment
-    secret_key_arn  = aws_secretsmanager_secret.secret-key.arn
+    region = var.region
+    environment = var.environment
+    secret_key_arn = aws_secretsmanager_secret.secret-key.arn
     db_password_arn = aws_secretsmanager_secret.rds-password.arn
-    docker_image = "\${docker_image}"
+    docker_image = "$${docker_image}"
     # docker_image    = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
-    db_endpoint     = local.db_endpoint
-    container_port  = var.container_port
+    db_endpoint = local.db_endpoint
+    container_port = var.container_port
     mailgun_api_key_arn = data.aws_secretsmanager_secret.mailgun-api-key.arn
     mailgun_url_arn = data.aws_ssm_parameter.mailgun_api_url.arn
-    s3_bucket  = aws_s3_bucket.static_assets.bucket
+    s3_bucket = aws_s3_bucket.static_assets.bucket
   }
 }
 
 data "template_file" "web_app_task_definition_initial" {
   template = data.template_file.web_app_task_definition_base.rendered
   vars = {
-    docker_image    = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
+    docker_image = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
   }
 }
 
 resource "aws_s3_bucket_object" "task_definition" {
   bucket = "web-app-deploy-artifacts"
-  key    = "/${var.environment}/task_definition.json"
+  key = "/${var.environment}/task_definition.json"
   content = data.template_file.web_app_task_definition_base.rendered
 }
 
@@ -207,8 +207,8 @@ locals {
 }
 
 resource "aws_ssm_parameter" "task_definition_parameters" {
-  name  = "/web-app/${var.environment}/task-parameters/${keys(local.deploy_parameters)[count.index]}"
-  type  = "String"
+  name = "/web-app/${var.environment}/task-parameters/${keys(local.deploy_parameters)[count.index]}"
+  type = "String"
   value = values(local.deploy_parameters)[count.index]
   tags = {
     cost-tracking = "web-app"
@@ -217,14 +217,14 @@ resource "aws_ssm_parameter" "task_definition_parameters" {
 }
 
 resource "aws_ecs_task_definition" "web-app-service" {
-  family                   = local.deploy_parameters.family
+  family = local.deploy_parameters.family
   requires_compatibilities = [local.deploy_parameters.requires-compatibilities]
-  container_definitions    = data.template_file.web_app_task_definition_initial.rendered
-  task_role_arn            = local.deploy_parameters.task-role-arn
-  execution_role_arn       = local.deploy_parameters.execution-role-arn
-  network_mode             = local.deploy_parameters.network-mode
-  cpu                      = local.deploy_parameters.cpu
-  memory                   = local.deploy_parameters.memory
+  container_definitions = data.template_file.web_app_task_definition_initial.rendered
+  task_role_arn = local.deploy_parameters.task-role-arn
+  execution_role_arn = local.deploy_parameters.execution-role-arn
+  network_mode = local.deploy_parameters.network-mode
+  cpu = local.deploy_parameters.cpu
+  memory = local.deploy_parameters.memory
   tags = {
     environment = var.environment
   }
@@ -232,7 +232,7 @@ resource "aws_ecs_task_definition" "web-app-service" {
 
 resource "aws_cloudwatch_log_group" "web-app-log-group" {
   name = "/ecs/web-app/${var.environment}"
-    tags = {
+  tags = {
     environment = var.environment
   }
 }
@@ -245,31 +245,31 @@ resource "aws_cloudwatch_log_group" "web-app-log-group" {
 # # }
 
 resource "aws_security_group" "alb_sg" {
-  name        = "web_app_${var.environment}_alb_sg"
+  name = "web_app_${var.environment}_alb_sg"
   description = "Allows public traffic to the ${var.environment} web app ALB"
-  vpc_id      = data.aws_vpc.web-app.id
+  vpc_id = data.aws_vpc.web-app.id
 
   ingress {
-    from_port        = 443
-    to_port          = 443
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
+    from_port = 443
+    to_port = 443
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
   }
   ingress {
-    from_port        = 80
-    to_port          = 80
-    protocol         = "tcp"
-    cidr_blocks      = ["0.0.0.0/0"]
+    from_port = 80
+    to_port = 80
+    protocol = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
     ipv6_cidr_blocks = ["::/0"]
 
   }
 
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
@@ -305,21 +305,21 @@ resource "aws_security_group" "alb_sg" {
 # # }
 
 resource "aws_security_group" "container_sg" {
-  name        = "web_app_${var.environment}_container_sg"
+  name = "web_app_${var.environment}_container_sg"
   description = "Attached to the ${var.environment} container instances"
-  vpc_id      = data.aws_vpc.web-app.id
+  vpc_id = data.aws_vpc.web-app.id
 
   ingress {
-    from_port       = var.container_port
-    to_port         = var.container_port
-    protocol        = "tcp"
+    from_port = var.container_port
+    to_port = var.container_port
+    protocol = "tcp"
     security_groups = [aws_security_group.alb_sg.id]
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
@@ -328,11 +328,11 @@ resource "aws_security_group" "container_sg" {
 }
 
 resource "aws_lb" "web_app_alb" {
-  name               = "web-app-${var.environment}-alb"
-  internal           = false
+  name = "web-app-${var.environment}-alb"
+  internal = false
   load_balancer_type = "application"
-  security_groups    = [aws_security_group.alb_sg.id]
-  subnets            = data.aws_subnet_ids.public.ids
+  security_groups = [aws_security_group.alb_sg.id]
+  subnets = data.aws_subnet_ids.public.ids
 
   enable_deletion_protection = true
   # access_logs {
@@ -413,28 +413,28 @@ resource "aws_lb" "web_app_alb" {
 # }
 
 resource "aws_security_group" "db_sg" {
-  name        = "web_app_${var.environment}_db_sg"
+  name = "web_app_${var.environment}_db_sg"
   description = "Allows ${var.environment} db traffic"
-  vpc_id      = data.aws_vpc.web-app.id
+  vpc_id = data.aws_vpc.web-app.id
 
   ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
+    from_port = 5432
+    to_port = 5432
+    protocol = "tcp"
     security_groups = [aws_security_group.container_sg.id]
   }
 
   ingress {
-    from_port   = 5432
-    to_port     = 5432
-    protocol    = "tcp"
+    from_port = 5432
+    to_port = 5432
+    protocol = "tcp"
     cidr_blocks = ["${data.aws_instance.bastion.private_ip}/32"]
   }
 
   egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
+    from_port = 0
+    to_port = 0
+    protocol = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
   tags = {
@@ -443,19 +443,19 @@ resource "aws_security_group" "db_sg" {
 }
 
 resource "aws_db_instance" "db" {
-  allocated_storage      = 20
-  storage_type           = "gp2"
-  engine                 = "postgres"
-  engine_version         = "10.6"
-  skip_final_snapshot    = true
-  instance_class         = "db.t2.micro"
-  name                   = "fitzroyacademy"
-  identifier             = "${var.environment}webapp"
-  username               = "fitzroyacademy"
-  multi_az               = false
-  password               = aws_secretsmanager_secret_version.db-password.secret_string
-  parameter_group_name   = "default.postgres10"
-  db_subnet_group_name   = aws_db_subnet_group.web-app.name
+  allocated_storage = 20
+  storage_type = "gp2"
+  engine = "postgres"
+  engine_version = "10.6"
+  skip_final_snapshot = true
+  instance_class = "db.t2.micro"
+  name = "fitzroyacademy"
+  identifier = "${var.environment}webapp"
+  username = "fitzroyacademy"
+  multi_az = false
+  password = aws_secretsmanager_secret_version.db-password.secret_string
+  parameter_group_name = "default.postgres10"
+  db_subnet_group_name = aws_db_subnet_group.web-app.name
   vpc_security_group_ids = [aws_security_group.db_sg.id]
   tags = {
     environment = var.environment
@@ -465,50 +465,50 @@ resource "aws_db_instance" "db" {
 
 resource "aws_route53_record" "app" {
   zone_id = aws_route53_zone.public.id
-  name    = "${var.public_dns_name}"
-  type    = "A"
+  name = "${var.public_dns_name}"
+  type = "A"
   alias {
-    name                   = aws_lb.web_app_alb.dns_name
-    zone_id                = aws_lb.web_app_alb.zone_id
+    name = aws_lb.web_app_alb.dns_name
+    zone_id = aws_lb.web_app_alb.zone_id
     evaluate_target_health = false
   }
 }
 
 resource "aws_route53_record" "db" {
   zone_id = data.aws_route53_zone.private.zone_id
-  name    = local.db_endpoint
-  type    = "CNAME"
-  ttl     = "60"
+  name = local.db_endpoint
+  type = "CNAME"
+  ttl = "60"
   records = [aws_db_instance.db.address]
 }
 
 
 resource "aws_db_subnet_group" "web-app" {
-  name       = "web_app_${var.environment}"
+  name = "web_app_${var.environment}"
   subnet_ids = data.aws_subnet_ids.private.ids
 }
 
 
 resource "aws_secretsmanager_secret" "rds-password" {
   description = "web-app ${var.environment} rds password"
-  kms_key_id  = aws_kms_key.rds.key_id
-  name        = "web-app-${var.environment}-db-password"
+  kms_key_id = aws_kms_key.rds.key_id
+  name = "web-app-${var.environment}-db-password"
 }
 
 
 
 resource "aws_secretsmanager_secret" "secret-key" {
   description = "web-app ${var.environment} secret key"
-  name        = "web-app-${var.environment}-secret-key"
+  name = "web-app-${var.environment}-secret-key"
 }
 
 resource "random_string" "db-password" {
-  length  = 16
+  length = 16
   special = false
 }
 
 resource "random_string" "secret-key" {
-  length  = 16
+  length = 16
   special = false
 }
 
@@ -516,7 +516,7 @@ resource "aws_secretsmanager_secret_version" "db-password" {
   lifecycle {
     ignore_changes = [secret_string]
   }
-  secret_id     = aws_secretsmanager_secret.rds-password.id
+  secret_id = aws_secretsmanager_secret.rds-password.id
   secret_string = chomp(random_string.db-password.result)
 }
 
@@ -524,39 +524,39 @@ resource "aws_secretsmanager_secret_version" "secret-key" {
   lifecycle {
     ignore_changes = [secret_string]
   }
-  secret_id     = aws_secretsmanager_secret.secret-key.id
+  secret_id = aws_secretsmanager_secret.secret-key.id
   secret_string = random_string.secret-key.result
 }
 
 resource "aws_s3_bucket" "static_assets" {
   bucket = "${var.environment}-web-app-static-assets"
   policy = "${data.aws_iam_policy_document.static_assets.json}"
-    cors_rule {
+  cors_rule {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "HEAD"]
     allowed_origins = ["*"]
-    expose_headers  = ["ETag"]
+    expose_headers = ["ETag"]
     max_age_seconds = 3000
   }
 }
 
 data "aws_iam_policy_document" "static_assets" {
   statement {
-    actions   = ["s3:GetObject"]
+    actions = ["s3:GetObject"]
     resources = ["arn:aws:s3:::${var.environment}-web-app-static-assets/*"]
 
     principals {
-      type        = "AWS"
+      type = "AWS"
       identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
     }
   }
 
   statement {
-    actions   = ["s3:ListBucket"]
+    actions = ["s3:ListBucket"]
     resources = ["arn:aws:s3:::${var.environment}-web-app-static-assets"]
 
     principals {
-      type        = "AWS"
+      type = "AWS"
       identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
     }
   }
@@ -570,22 +570,22 @@ resource "aws_cloudfront_origin_access_identity" "origin_access_identity" {
 resource "aws_cloudfront_distribution" "static_assets" {
   wait_for_deployment = false
   origin {
-      s3_origin_config {
-    origin_access_identity = "${aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path}"
-  }
+    s3_origin_config {
+      origin_access_identity = "${aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path}"
+    }
     domain_name = aws_s3_bucket.static_assets.bucket_regional_domain_name
-    origin_id   = "${var.environment}-web-app-static-assets"
+    origin_id = "${var.environment}-web-app-static-assets"
   }
-  enabled             = true
+  enabled = true
   default_cache_behavior {
     viewer_protocol_policy = "redirect-to-https"
-    compress               = true
-    allowed_methods        = ["GET", "HEAD", "OPTIONS"]
-    cached_methods         = ["GET", "HEAD", "OPTIONS"]
-    target_origin_id       = "${var.environment}-web-app-static-assets"
-    min_ttl                = 0
-    default_ttl            = 86400
-    max_ttl                = 31536000
+    compress = true
+    allowed_methods = ["GET", "HEAD", "OPTIONS"]
+    cached_methods = ["GET", "HEAD", "OPTIONS"]
+    target_origin_id = "${var.environment}-web-app-static-assets"
+    min_ttl = 0
+    default_ttl = 86400
+    max_ttl = 31536000
 
     forwarded_values {
       query_string = false
@@ -600,28 +600,28 @@ resource "aws_cloudfront_distribution" "static_assets" {
     }
   }
   restrictions {
-    geo_restriction{
-    restriction_type = "none"
-  }
+    geo_restriction {
+      restriction_type = "none"
+    }
   }
   aliases = [local.assets_dns_name]
 
   viewer_certificate {
     # cloudfront_default_certificate = true
     acm_certificate_arn = aws_acm_certificate.public_cert_ue1.arn
-    ssl_support_method  = "sni-only"
+    ssl_support_method = "sni-only"
   }
 }
 
 
 resource "aws_route53_record" "static_assets" {
   zone_id = aws_route53_zone.public.zone_id
-  name    = local.assets_dns_name
-  type    = "A"
+  name = local.assets_dns_name
+  type = "A"
 
   alias {
-    name                   = "${aws_cloudfront_distribution.static_assets.domain_name}"
-    zone_id                = "${aws_cloudfront_distribution.static_assets.hosted_zone_id}"
+    name = "${aws_cloudfront_distribution.static_assets.domain_name}"
+    zone_id = "${aws_cloudfront_distribution.static_assets.hosted_zone_id}"
     evaluate_target_health = false
   }
 }
@@ -646,11 +646,11 @@ resource "aws_acm_certificate" "public" {
 
 
 resource "aws_route53_record" "public_validation" {
-  name    = "${aws_acm_certificate.public.domain_validation_options.0.resource_record_name}"
-  type    = "${aws_acm_certificate.public.domain_validation_options.0.resource_record_type}"
+  name = "${aws_acm_certificate.public.domain_validation_options.0.resource_record_name}"
+  type = "${aws_acm_certificate.public.domain_validation_options.0.resource_record_type}"
   zone_id = aws_route53_zone.public.id
   records = ["${aws_acm_certificate.public.domain_validation_options.0.resource_record_value}"]
-  ttl     = 60
+  ttl = 60
 }
 
 resource "aws_acm_certificate" "public_cert_ue1" {
@@ -663,7 +663,7 @@ resource "aws_acm_certificate" "public_cert_ue1" {
     create_before_destroy = true
   }
 
-  provider = aws.us_east_1 
+  provider = aws.us_east_1
   tags = {
     cost-tracking = "web-app"
   }
@@ -673,7 +673,7 @@ provider "aws" {
   alias = "us_east_1"
   region = "us-east-1"
   assume_role {
-    role_arn     = "arn:aws:iam::${var.account_number}:role/TerraformCrossAccountRole"
+    role_arn = "arn:aws:iam::${var.account_number}:role/TerraformCrossAccountRole"
     session_name = "terraform"
   }
 }

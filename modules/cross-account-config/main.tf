@@ -47,7 +47,7 @@ resource "aws_iam_role_policy_attachment" "cross_account_administrator" {
 resource "aws_iam_role" "circleci_cross_account_assume_role" {
   name               = "CircleCICrossAccountRole"
   assume_role_policy = data.aws_iam_policy_document.circleci_cross_account_assume_role_policy[0].json
-  count = var.enable_circleci ? 1 : 0
+  count              = var.enable_circleci ? 1 : 0
 }
 
 data "aws_iam_policy_document" "circleci_cross_account_assume_role_policy" {
@@ -86,25 +86,25 @@ data "aws_iam_policy_document" "circleci_permissions" {
 }
 
 resource "aws_iam_role_policy" "ci_policy" {
-  name = "circleci_role_policy"
-  role = aws_iam_role.circleci_cross_account_assume_role[0].id
+  name   = "circleci_role_policy"
+  role   = aws_iam_role.circleci_cross_account_assume_role[0].id
   policy = data.aws_iam_policy_document.circleci_permissions[0].json
-  count = var.enable_circleci ? 1 : 0
+  count  = var.enable_circleci ? 1 : 0
 }
 
 module "web_app_core" {
-  source = "../web-app"
-  account_number = var.account_number
+  source           = "../web-app"
+  account_number   = var.account_number
   private_dns_name = "fitzroy.io"
-  environments = {"live" = "fitzroy.academy"}
+  environments     = { "live" = "fitzroy.academy" }
 }
 
 module "web_app_live" {
-  source = "../web-app-environment"
-  environment = "live"
-  public_dns_name = "fitzroy.academy"
+  source           = "../web-app-environment"
+  environment      = "live"
+  public_dns_name  = "fitzroy.academy"
   private_dns_name = "fitzroy.io"
-  region = var.region
-  docker_tag = var.live_docker_tag
-  account_number = var.account_number
+  region           = var.region
+  docker_tag       = var.live_docker_tag
+  account_number   = var.account_number
 }

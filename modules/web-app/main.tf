@@ -1,13 +1,13 @@
 resource "aws_ecs_cluster" "web-app-cluster" {
   name = "web-app"
   tags = {
-    cost-tracking = "web-app"
+    cost-tracking          = "web-app"
     tf-web-app-ecs-cluster = "true"
   }
 }
 
 resource "aws_kms_alias" "rds" {
-  name = "alias/rds"
+  name          = "alias/rds"
   target_key_id = aws_kms_key.rds.key_id
 }
 
@@ -38,8 +38,8 @@ data "aws_availability_zones" "available" {
 # }
 
 resource "aws_eip" "bastion" {
-  instance = "${aws_instance.bastion.id}"
-  vpc      = true
+  instance   = "${aws_instance.bastion.id}"
+  vpc        = true
   depends_on = ["module.vpc"]
   tags = {
     cost-tracking = "web-app"
@@ -74,19 +74,19 @@ resource "aws_iam_instance_profile" "bastion" {
   role = aws_iam_role.bastion.name
 }
 resource "aws_key_pair" "rsavage" {
-  key_name   = "rsavage"
+  key_name = "rsavage"
   public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABAQDGABR1H00bSoRk6iC9AGbGbA1MJI+l1tU75NllU81KRqLz9cd+kpznw+vyd5fJQDevwbSAlE3ga5al+koP7F3QY0W4uLtLSYnPyVxVnU1R7kL5jgPnTTWDLXK3cDtTHiLIp/qm+KGT2FPJ4iTO7bxGPPFxJsK04qREHK4GRcTCODQACAu6omiaUpw+LV/wv/P6spxvObyCG/FD5gPTW/cgCwEgrfM2xcUlfVmEoLvNRz/rJlJLpDm32104XeUvDCKtUYFeU+PmCVogKduMzy10gbCRlDlYvcY1ctJq165i9qcsTMBkZN1ij1/st6IaDDN95izSS9Nlh9NrEGrv9hdt"
 }
 
 resource "aws_security_group" "bastion" {
-  name        = "bastion"
+  name = "bastion"
   description = "Allow bastion traffic"
-  vpc_id      = module.vpc.vpc_id
+  vpc_id = module.vpc.vpc_id
 
   ingress {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
+    from_port = 22
+    to_port = 22
+    protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
 
@@ -100,7 +100,7 @@ resource "aws_instance" "bastion" {
   # ami                         = data.aws_ami.amazon-linux-2.id
   ami = "ami-059d92a736f307c9c"
   instance_type = "t2.nano"
-  subnet_id  = module.vpc.public_subnets[0]
+  subnet_id = module.vpc.public_subnets[0]
   key_name = aws_key_pair.rsavage.key_name
   vpc_security_group_ids = [aws_security_group.bastion.id]
   source_dest_check = false
@@ -176,9 +176,9 @@ module "vpc" {
 
 
 resource "aws_kms_key" "rds" {
-  description         = "Key for RDS instance passwords"
+  description = "Key for RDS instance passwords"
   enable_key_rotation = true
-  policy              = <<POLICY
+  policy = <<POLICY
 {
   "Id": "key-policy",
   "Version": "2012-10-17",
@@ -235,7 +235,7 @@ resource "aws_ssm_parameter" "mailgun_api_url" {
 resource "aws_route53_zone" "private" {
   name = var.private_dns_name
   tags = {
-    cost-tracking = "web-app"
+    cost-tracking           = "web-app"
     tf-web-app-private-zone = "true"
   }
   vpc {
