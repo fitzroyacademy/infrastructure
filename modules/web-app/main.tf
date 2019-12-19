@@ -69,6 +69,36 @@ EOF
   }
 }
 
+resource "aws_iam_role_policy_attachment" "bastion" {
+  role = aws_iam_role.bastion.name
+  policy_arn = aws_iam_policy.bastion.arn
+}
+
+resource "aws_iam_policy" "bastion" {
+  name        = "bastion"
+  description = "Bastion instance permissions"
+
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": [
+        "ecr:GetAuthorizationToken",
+                    "ecr:BatchGetImage",
+            "ecr:GetDownloadUrlForLayer",
+            "ecr:GetRepositoryPolicy",
+            "ecr:ListImages",
+            "ecr:DescribeRepositories"
+      ],
+      "Effect": "Allow",
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+}
+
 resource "aws_iam_instance_profile" "bastion" {
   name = "bastion"
   role = aws_iam_role.bastion.name
@@ -255,6 +285,14 @@ resource "aws_route53_zone" "private" {
   vpc {
     vpc_id = module.vpc.vpc_id
   }
+}
+
+resource "aws_route53_record" "bastion" {
+  zone_id = aws_route53_zone.private_reserve.zone_id
+  name = "bastion.${aws_route53_zone.private_reserve.name}"
+  type = "A"
+  ttl = "900"
+  records = [aws_eip.bastion.public_ip]
 }
 
 # Create a zone for the "private" zone, but don't put any records in it.
