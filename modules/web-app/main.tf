@@ -47,7 +47,7 @@ resource "aws_eip" "bastion" {
 }
 
 resource "aws_iam_role" "bastion" {
-  name = "test_role"
+  name = "bastion"
 
   assume_role_policy = <<EOF
 {
@@ -88,6 +88,20 @@ resource "aws_security_group" "bastion" {
     to_port = 22
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks     = [module.vpc.vpc_cidr_block]
+  }
+
+  egress {
+    from_port       = 0
+    to_port         = 0
+    protocol        = "-1"
+    cidr_blocks     = ["0.0.0.0/0"]
   }
 
   tags = {

@@ -142,7 +142,7 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
     resources = [
       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-db-password-??????",
       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-secret-key-??????",
-      "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-mailgun-api-key-??????"
+      "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:mailgun-api-key-??????"
     ]
   }
   statement {
@@ -172,7 +172,6 @@ data "template_file" "web_app_task_definition_base" {
     secret_key_arn = aws_secretsmanager_secret.secret-key.arn
     db_password_arn = aws_secretsmanager_secret.rds-password.arn
     docker_image = "$${docker_image}"
-    # docker_image    = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
     db_endpoint = local.db_endpoint
     container_port = var.container_port
     mailgun_api_key_arn = data.aws_secretsmanager_secret.mailgun-api-key.arn
@@ -346,71 +345,71 @@ resource "aws_lb" "web_app_alb" {
   }
 }
 
-# resource "aws_alb_target_group" "web-app" {
-#   name        = "web-app-${var.environment}-tg"
-#   port        = var.container_port
-#   protocol    = "HTTP"
-#   target_type = "ip"
-#   vpc_id      = data.aws_vpc.web-app.id
-# }
+resource "aws_alb_target_group" "web-app" {
+  name        = "web-app-${var.environment}-tg"
+  port        = var.container_port
+  protocol    = "HTTP"
+  target_type = "ip"
+  vpc_id      = data.aws_vpc.web-app.id
+}
 
-# resource "aws_ecs_service" "web_app" {
-#   name                              = "web-app-${var.environment}"
-#   cluster                           = data.aws_ecs_cluster.web-app.cluster_name
-#   task_definition                   = aws_ecs_task_definition.web-app-service.arn
-#   launch_type                       = "FARGATE"
-#   health_check_grace_period_seconds = 30
-#   desired_count                     = 1
-#   depends_on = [
-#     aws_iam_role_policy.web_app_ecs_task_policy,
-#     aws_lb_listener.web_app_public
-#   ]
+resource "aws_ecs_service" "web_app" {
+  name                              = "web-app-${var.environment}"
+  cluster                           = data.aws_ecs_cluster.web-app.cluster_name
+  task_definition                   = aws_ecs_task_definition.web-app-service.arn
+  launch_type                       = "FARGATE"
+  health_check_grace_period_seconds = 30
+  desired_count                     = 1
+  depends_on = [
+    aws_iam_role_policy.web_app_ecs_task_policy,
+    aws_lb_listener.web_app_public
+  ]
 
-#   load_balancer {
-#     target_group_arn = aws_alb_target_group.web-app.arn
-#     container_name   = aws_ecs_task_definition.web-app-service.family
-#     container_port   = var.container_port
-#   }
-#   network_configuration {
-#     subnets          = data.aws_subnet_ids.private
-#     security_groups  = [aws_security_group.container_sg.id]
-#     assign_public_ip = false
-#   }
-#   tags {
-#     environment = var.environment
-#   }
-# }
+  load_balancer {
+    target_group_arn = aws_alb_target_group.web-app.arn
+    container_name   = aws_ecs_task_definition.web-app-service.family
+    container_port   = var.container_port
+  }
+  network_configuration {
+    subnets          = data.aws_subnet_ids.private.ids
+    security_groups  = [aws_security_group.container_sg.id]
+    assign_public_ip = false
+  }
+  tags = {
+    environment = var.environment
+  }
+}
 
-# resource "aws_lb_listener" "web_app_public" {
-#   load_balancer_arn = aws_lb.web_app_alb.arn
-#   port              = "80"
-#   protocol          = "HTTP"
+resource "aws_lb_listener" "web_app_public" {
+  load_balancer_arn = aws_lb.web_app_alb.arn
+  port              = "80"
+  protocol          = "HTTP"
 
-#   default_action {
-#     type = "redirect"
-#     redirect {
-#       host        = "#{host}"
-#       path        = "/#{path}"
-#       port        = "443"
-#       protocol    = "HTTPS"
-#       query       = "#{query}"
-#       status_code = "HTTP_301"
-#     }
-#     target_group_arn = aws_alb_target_group.web-app.arn
-#   }
-# }
+  default_action {
+    type = "redirect"
+    redirect {
+      host        = "#{host}"
+      path        = "/#{path}"
+      port        = "443"
+      protocol    = "HTTPS"
+      query       = "#{query}"
+      status_code = "HTTP_301"
+    }
+    target_group_arn = aws_alb_target_group.web-app.arn
+  }
+}
 
-# resource "aws_lb_listener" "web_app_public_https" {
-#   load_balancer_arn = aws_lb.web_app_alb.arn
-#   port              = "443"
-#   protocol          = "HTTPS"
-#   ssl_policy        = "ELBSecurityPolicy-2016-08"
-#   certificate_arn   = data.aws_acm_certificate.public.arn
-#   default_action {
-#     type             = "forward"
-#     target_group_arn = aws_alb_target_group.web-app.arn
-#   }
-# }
+resource "aws_lb_listener" "web_app_public_https" {
+  load_balancer_arn = aws_lb.web_app_alb.arn
+  port              = "443"
+  protocol          = "HTTPS"
+  ssl_policy        = "ELBSecurityPolicy-2016-08"
+  certificate_arn   = aws_acm_certificate.public.arn
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_alb_target_group.web-app.arn
+  }
+}
 
 resource "aws_security_group" "db_sg" {
   name = "web_app_${var.environment}_db_sg"
