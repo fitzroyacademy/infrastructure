@@ -6,7 +6,7 @@ orbs:
 references:
 
 base_image: &base_image
-  hashicorp/terraform:0.12.3
+  hashicorp/terraform:0.12.20
 
 working_directory: &working_directory
   ~/tf_run
