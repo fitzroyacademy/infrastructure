@@ -38,9 +38,9 @@ data "aws_availability_zones" "available" {
 # }
 
 resource "aws_eip" "bastion" {
-  instance   = "${aws_instance.bastion.id}"
+  instance   = aws_instance.bastion.id
   vpc        = true
-  depends_on = ["module.vpc"]
+  depends_on = [module.vpc]
   tags = {
     cost-tracking = "web-app"
   }

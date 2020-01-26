@@ -177,6 +177,12 @@ data "template_file" "web_app_task_definition_base" {
     mailgun_api_key_arn = data.aws_secretsmanager_secret.mailgun-api-key.arn
     mailgun_url_arn = data.aws_ssm_parameter.mailgun_api_url.arn
     s3_bucket = aws_s3_bucket.static_assets.bucket
+    task_role_arn = local.deploy_parameters.task-role-arn
+    execution_role_arn = local.deploy_parameters.execution-role-arn
+    family = local.deploy_parameters.family
+    network_mode = local.deploy_parameters.network-mode
+    cpu = local.deploy_parameters.cpu
+    memory = local.deploy_parameters.memory
   }
 }
 
@@ -200,20 +206,20 @@ locals {
     "execution-role-arn" = aws_iam_role.web_app_task_role.arn,
     "network-mode" = "awsvpc",
     "requires-compatibilities" = "FARGATE",
-    "cpu" = 256,
-    "memory" = 512,
+    "cpu" = "256",
+    "memory" = "512"
   }
 }
 
-resource "aws_ssm_parameter" "task_definition_parameters" {
-  name = "/web-app/${var.environment}/task-parameters/${keys(local.deploy_parameters)[count.index]}"
-  type = "String"
-  value = values(local.deploy_parameters)[count.index]
-  tags = {
-    cost-tracking = "web-app"
-  }
-  count = length(local.deploy_parameters)
-}
+# resource "aws_ssm_parameter" "task_definition_parameters" {
+#   name = "/web-app/${var.environment}/task-parameters/${keys(local.deploy_parameters)[count.index]}"
+#   type = "String"
+#   value = values(local.deploy_parameters)[count.index]
+#   tags = {
+#     cost-tracking = "web-app"
+#   }
+#   count = length(local.deploy_parameters)
+# }
 
 resource "aws_ecs_task_definition" "web-app-service" {
   family = local.deploy_parameters.family
@@ -358,7 +364,7 @@ resource "aws_ecs_service" "web_app" {
   cluster                           = data.aws_ecs_cluster.web-app.cluster_name
   task_definition                   = aws_ecs_task_definition.web-app-service.arn
   launch_type                       = "FARGATE"
-  health_check_grace_period_seconds = 30
+  health_check_grace_period_seconds = 60
   desired_count                     = 1
   depends_on = [
     aws_iam_role_policy.web_app_ecs_task_policy,
@@ -464,7 +470,7 @@ resource "aws_db_instance" "db" {
 
 resource "aws_route53_record" "app" {
   zone_id = aws_route53_zone.public.id
-  name = "${var.public_dns_name}"
+  name = var.public_dns_name
   type = "A"
   alias {
     name = aws_lb.web_app_alb.dns_name
@@ -529,7 +535,7 @@ resource "aws_secretsmanager_secret_version" "secret-key" {
 
 resource "aws_s3_bucket" "static_assets" {
   bucket = "${var.environment}-web-app-static-assets"
-  policy = "${data.aws_iam_policy_document.static_assets.json}"
+  policy = data.aws_iam_policy_document.static_assets.json
   cors_rule {
     allowed_headers = ["*"]
     allowed_methods = ["GET", "HEAD"]
@@ -546,7 +552,7 @@ data "aws_iam_policy_document" "static_assets" {
 
     principals {
       type = "AWS"
-      identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
+      identifiers = [aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn]
     }
   }
 
@@ -556,7 +562,7 @@ data "aws_iam_policy_document" "static_assets" {
 
     principals {
       type = "AWS"
-      identifiers = ["${aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn}"]
+      identifiers = [aws_cloudfront_origin_access_identity.origin_access_identity.iam_arn]
     }
   }
 }
@@ -570,7 +576,7 @@ resource "aws_cloudfront_distribution" "static_assets" {
   wait_for_deployment = false
   origin {
     s3_origin_config {
-      origin_access_identity = "${aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path}"
+      origin_access_identity = aws_cloudfront_origin_access_identity.origin_access_identity.cloudfront_access_identity_path
     }
     domain_name = aws_s3_bucket.static_assets.bucket_regional_domain_name
     origin_id = "${var.environment}-web-app-static-assets"
@@ -619,8 +625,8 @@ resource "aws_route53_record" "static_assets" {
   type = "A"
 
   alias {
-    name = "${aws_cloudfront_distribution.static_assets.domain_name}"
-    zone_id = "${aws_cloudfront_distribution.static_assets.hosted_zone_id}"
+    name = aws_cloudfront_distribution.static_assets.domain_name
+    zone_id = aws_cloudfront_distribution.static_assets.hosted_zone_id
     evaluate_target_health = false
   }
 }
@@ -645,10 +651,10 @@ resource "aws_acm_certificate" "public" {
 
 
 resource "aws_route53_record" "public_validation" {
-  name = "${aws_acm_certificate.public.domain_validation_options.0.resource_record_name}"
-  type = "${aws_acm_certificate.public.domain_validation_options.0.resource_record_type}"
+  name = aws_acm_certificate.public.domain_validation_options.0.resource_record_name
+  type = aws_acm_certificate.public.domain_validation_options.0.resource_record_type
   zone_id = aws_route53_zone.public.id
-  records = ["${aws_acm_certificate.public.domain_validation_options.0.resource_record_value}"]
+  records = [aws_acm_certificate.public.domain_validation_options.0.resource_record_value]
   ttl = 60
 }
 

@@ -1,6 +1,8 @@
 [   
     {
+      "family" : "${family}",
       "dnsSearchDomains": null,
+      "networkMode": "${network_mode}",
       "logConfiguration": {
         "logDriver": "awslogs",
         "secretOptions": null,
@@ -10,6 +12,8 @@
           "awslogs-stream-prefix": "ecs"
         }
       },
+      "taskRoleArn": "${task_role_arn}",
+      "executionRoleArn": "${execution_role_arn}",
       "entryPoint": null,
       "portMappings": [
         {
@@ -20,7 +24,7 @@
       ],
       "command": null,
       "linuxParameters": null,
-      "cpu": 128,
+      "cpu": ${cpu},
       "environment": [
         {
           "name": "FLASK_ENV",
@@ -78,7 +82,7 @@
         }
       ],
       "dockerSecurityOptions": null,
-      "memory": 256,
+      "memory": ${memory},
       "memoryReservation": 128,
       "volumesFrom": [],
       "stopTimeout": null,
