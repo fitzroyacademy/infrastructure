@@ -184,6 +184,7 @@ data "template_file" "web_app_task_definition" {
     cpu = local.deploy_parameters.cpu
     memory = local.deploy_parameters.memory
     docker_image = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
+    server_name = var.public_dns_name
   }
 }
 

@@ -56,6 +56,9 @@
         },
         {"name": "S3_BUCKET",
           "value": "${s3_bucket}"
+        },
+        {"name": "SERVER_NAME",
+          "value": "${server_name}"
         }
       ],
       "resourceRequirements": null,
