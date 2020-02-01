@@ -164,7 +164,7 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
   }
 }
 
-data "template_file" "web_app_task_definition_base" {
+data "template_file" "web_app_task_definition" {
   template = file("${path.module}/files/task_definition.json")
   vars = {
     region = var.region
@@ -183,20 +183,8 @@ data "template_file" "web_app_task_definition_base" {
     network_mode = local.deploy_parameters.network-mode
     cpu = local.deploy_parameters.cpu
     memory = local.deploy_parameters.memory
-  }
-}
-
-data "template_file" "web_app_task_definition_initial" {
-  template = data.template_file.web_app_task_definition_base.rendered
-  vars = {
     docker_image = "${var.account_number}.dkr.ecr.${var.region}.amazonaws.com/fitzroy-academy/web-app:${var.docker_tag}"
   }
-}
-
-resource "aws_s3_bucket_object" "task_definition" {
-  bucket = "web-app-deploy-artifacts"
-  key = "/${var.environment}/task_definition.json"
-  content = data.template_file.web_app_task_definition_base.rendered
 }
 
 locals {
@@ -224,7 +212,7 @@ locals {
 resource "aws_ecs_task_definition" "web-app-service" {
   family = local.deploy_parameters.family
   requires_compatibilities = [local.deploy_parameters.requires-compatibilities]
-  container_definitions = data.template_file.web_app_task_definition_initial.rendered
+  container_definitions = data.template_file.web_app_task_definition.rendered
   task_role_arn = local.deploy_parameters.task-role-arn
   execution_role_arn = local.deploy_parameters.execution-role-arn
   network_mode = local.deploy_parameters.network-mode
@@ -366,6 +354,9 @@ resource "aws_ecs_service" "web_app" {
   launch_type                       = "FARGATE"
   health_check_grace_period_seconds = 60
   desired_count                     = 1
+  lifecycle {
+    ignore_changes = [ task_definition ]
+  }
   depends_on = [
     aws_iam_role_policy.web_app_ecs_task_policy,
     aws_lb_listener.web_app_public
