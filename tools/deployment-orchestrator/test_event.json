@@ -1,0 +1,91 @@
+{
+    "version": "0",
+    "id": "38b63f6a-0411-be16-7143-becef4a44237",
+    "detail-type": "ECS Task State Change",
+    "source": "aws.ecs",
+    "account": "593798515196",
+    "time": "2020-02-01T23:39:39Z",
+    "region": "us-east-2",
+    "resources": [
+        "arn:aws:ecs:us-east-2:593798515196:task/web-app/e71d89dcf7c74700825b84e6903b3161"
+    ],
+    "detail": {
+        "attachments": [
+            {
+                "id": "751224d6-e2ad-44d0-b205-7ab6dffe4d03",
+                "type": "eni",
+                "status": "DELETED",
+                "details": [
+                    {
+                        "name": "subnetId",
+                        "value": "subnet-0822b95fb39e7a2ca"
+                    },
+                    {
+                        "name": "networkInterfaceId",
+                        "value": "eni-0e329d476a6fdafb9"
+                    },
+                    {
+                        "name": "macAddress",
+                        "value": "06:b4:9a:ea:20:0c"
+                    },
+                    {
+                        "name": "privateIPv4Address",
+                        "value": "10.200.1.32"
+                    }
+                ]
+            }
+        ],
+        "availabilityZone": "us-east-2b",
+        "clusterArn": "arn:aws:ecs:us-east-2:593798515196:cluster/web-app",
+        "containers": [
+            {
+                "containerArn": "arn:aws:ecs:us-east-2:593798515196:container/82bdfdf6-3020-4dc8-9419-c267c9189adc",
+                "exitCode": 137,
+                "lastStatus": "STOPPED",
+                "name": "web-app-live",
+                "image": "593798515196.dkr.ecr.us-east-2.amazonaws.com/fitzroy-academy/web-app:master",
+                "imageDigest": "sha256:ef76897afbbc738ac1dba92ce5c685c529420c93f5fac7049576e7c25e311032",
+                "runtimeId": "3f47ddd4c44b235a98d301e70e694e20f6da291f7f817285869570372f797fe3",
+                "taskArn": "arn:aws:ecs:us-east-2:593798515196:task/web-app/e71d89dcf7c74700825b84e6903b3161",
+                "networkInterfaces": [
+                    {
+                        "attachmentId": "751224d6-e2ad-44d0-b205-7ab6dffe4d03",
+                        "privateIpv4Address": "10.200.1.32"
+                    }
+                ],
+                "cpu": "256",
+                "memory": "512",
+                "memoryReservation": "128"
+            }
+        ],
+        "createdAt": "2020-02-01T23:14:54.811Z",
+        "launchType": "FARGATE",
+        "cpu": "256",
+        "memory": "512",
+        "desiredStatus": "STOPPED",
+        "group": "service:web-app-live",
+        "lastStatus": "STOPPED",
+        "overrides": {
+            "containerOverrides": [
+                {
+                    "name": "web-app-live"
+                }
+            ]
+        },
+        "connectivity": "CONNECTED",
+        "connectivityAt": "2020-02-01T23:14:59.269Z",
+        "pullStartedAt": "2020-02-01T23:15:07.845Z",
+        "startedAt": "2020-02-01T23:15:27.845Z",
+        "startedBy": "ecs-svc/3533262707504923521",
+        "stoppingAt": "2020-02-01T23:38:26.089Z",
+        "stoppedAt": "2020-02-01T23:39:39.954Z",
+        "pullStoppedAt": "2020-02-01T23:15:22.845Z",
+        "executionStoppedAt": "2020-02-01T23:38:56Z",
+        "stoppedReason": "Scaling activity initiated by (deployment ecs-svc/3533262707504923521)",
+        "updatedAt": "2020-02-01T23:39:39.954Z",
+        "taskArn": "arn:aws:ecs:us-east-2:593798515196:task/web-app/e71d89dcf7c74700825b84e6903b3161",
+        "taskDefinitionArn": "arn:aws:ecs:us-east-2:593798515196:task-definition/web-app-live:10",
+        "version": 7,
+        "platformVersion": "1.3.0"
+    }
+}

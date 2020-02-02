@@ -1,0 +1,43 @@
+service: app-notifications
+
+provider:
+  name: aws
+  runtime: python3.7
+  region: us-east-2
+
+custom: ${file(./env_vars.yml)}
+functions:
+  app-notifications:
+    handler: handler.invoke
+    events:
+      - cloudwatchEvent:
+          enabled: true
+          event:
+            source:
+              - "aws.ecs"
+            detail-type:
+              - "ECS Task State Change"
+            detail:
+              clusterArn:
+                - ${self:custom.ecs-cluster-arn}
+      - cloudwatchEvent:
+          enabled: true
+          event:
+            source:
+              - "aws.cloudwatch"
+            detail-type:
+              - "CloudWatch Alarm State Change"
+      - cloudwatchEvent:
+          enabled: true
+          event:
+            source:
+              - "aws.ecs"
+            detail-type:
+              - "ECS Service Action"
+    environment:
+          slackChannel: ${self:custom.slack-channel}
+          webhookUrl: ${self:custom.webhook-url}
+          region: ${self:custom.region}
+
+plugins:
+  - serverless-python-requirements
