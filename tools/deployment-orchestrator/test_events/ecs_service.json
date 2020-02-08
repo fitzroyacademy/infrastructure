@@ -11,7 +11,7 @@
     ],
     "detail": {
         "eventType": "INFO",
-        "eventName": "SERVICE_STEADY_STATE",
+        "eventName": "SERVICE_TASK_START_IMPAIRED",
         "clusterArn": "arn:aws:ecs:us-west-2:111122223333:cluster/default",
         "createdAt": "2019-11-19T19:27:22.695Z"
     }
