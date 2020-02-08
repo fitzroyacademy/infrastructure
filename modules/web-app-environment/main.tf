@@ -27,9 +27,6 @@ data "aws_secretsmanager_secret" "mailgun-api-key" {
 
 data "aws_route53_zone" "private" {
   name = var.private_dns_name
-  tags = {
-    tf-web-app-private-zone = "true"
-  }
   private_zone = true
 }
 
