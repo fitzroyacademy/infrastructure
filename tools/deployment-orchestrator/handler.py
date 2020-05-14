@@ -96,25 +96,25 @@ def ecs_service(event):
 def ecs_task(event):
     message = False # use this to track if we actually wanna send a message
 
-    if event['detail']['lastStatus'] == 'DEPROVISIONING' and event['detail']['desiredStatus'] == 'STOPPED':
-        message = 'We\'re going down, babeyy. Killing a task/container.'
-        reason = event['detail']['stoppedReason']
-        title = "🆘 ECS Task State Change."
+    # if event['detail']['lastStatus'] == 'DEPROVISIONING' and event['detail']['desiredStatus'] == 'STOPPED':
+    #     message = 'Stopping a task/container.'
+    #     reason = event['detail']['stoppedReason']
+    #     title = "ECS Task State Change."
 
-    if event['detail']['lastStatus'] == 'STOPPED' and event['detail']['desiredStatus'] == 'STOPPED':
-        message = 'Task/container is dead. We\'re out of business.'
-        reason = event['detail']['stoppedReason']
-        title = "💀 ECS Task State Change."
+    # if event['detail']['lastStatus'] == 'STOPPED' and event['detail']['desiredStatus'] == 'STOPPED':
+    #     message = 'Task/container has been killed.'
+    #     reason = event['detail']['stoppedReason']
+    #     title = "ECS Task State Change."
 
     if event['detail']['lastStatus'] == 'PENDING' and event['detail']['desiredStatus'] == 'RUNNING':
-        message = 'Creating a new container/task. We\'re almost back in business.'
+        message = 'Creating a new container/task.'
         reason = ''
         title = "👶 ECS Task State Change."
 
-    if event['detail']['lastStatus'] == 'RUNNING' and event['detail']['desiredStatus'] == 'RUNNING':
-        message = 'New container/task is up. We\'re back, babeyy.'
-        reason = ''
-        title = "😎 ECS Task State Change."
+    # if event['detail']['lastStatus'] == 'RUNNING' and event['detail']['desiredStatus'] == 'RUNNING':
+    #     message = 'New container/task is up.'
+    #     reason = ''
+    #     title = "😎 ECS Task State Change."
 
     if not message:
         print("we don't care about this detail")
