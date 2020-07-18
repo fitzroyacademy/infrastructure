@@ -82,6 +82,19 @@
         {
           "name":"MAILGUN_API_URL",
           "valueFrom": "${mailgun_url_arn}"
+        },
+        
+        {
+          "name":"AUTH0_CLIENT_ID",
+          "valueFrom": "${auth0_client_id_arn}"
+        },
+        {
+          "name":"AUTH0_DOMAIN",
+          "valueFrom": "${auth0_domain_arn}"
+        },
+        {
+          "name":"AUTH0_CLIENT_SECRET",
+          "valueFrom": "${auth0_client_secret_arn}"
         }
       ],
       "dockerSecurityOptions": null,

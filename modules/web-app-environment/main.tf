@@ -168,6 +168,9 @@ data "template_file" "web_app_task_definition" {
     environment = var.environment
     secret_key_arn = aws_secretsmanager_secret.secret-key.arn
     db_password_arn = aws_secretsmanager_secret.rds-password.arn
+    auth0_client_id_arn = aws_secretsmanager_secret.auth0-client-id.arn
+    auth0_domain_arn = aws_secretsmanager_secret.auth0-domain.arn
+    auth0_client_secret_arn = aws_secretsmanager_secret.auth0-client-secret.arn
     docker_image = "$${docker_image}"
     db_endpoint = local.db_endpoint
     container_port = var.container_port
@@ -489,7 +492,18 @@ resource "aws_secretsmanager_secret" "rds-password" {
   name = "web-app-${var.environment}-db-password"
 }
 
-
+resource "aws_secretsmanager_secret" "auth0-client-id" {
+  description = "web-app ${var.environment} auth0 client id"
+  name = "web-app-${var.environment}-auth0-client-id"
+}
+resource "aws_secretsmanager_secret" "auth0-domain" {
+  description = "web-app ${var.environment} auth0 domain"
+  name = "web-app-${var.environment}-auth0-domain"
+}
+resource "aws_secretsmanager_secret" "auth0-client-secret" {
+  description = "web-app ${var.environment} auth0 client secret"
+  name = "web-app-${var.environment}-auth0-client-secret"
+}
 
 resource "aws_secretsmanager_secret" "secret-key" {
   description = "web-app ${var.environment} secret key"
