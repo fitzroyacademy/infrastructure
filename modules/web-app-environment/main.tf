@@ -139,6 +139,9 @@ data "aws_iam_policy_document" "web_app_task_role_policy" {
     resources = [
       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-db-password-??????",
       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-secret-key-??????",
+      "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-auth0-client-id-??????",
+      "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-auth0-client-secret-??????",
+      "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:web-app-${var.environment}-auth0-domain-??????",
       "arn:aws:secretsmanager:${var.region}:${var.account_number}:secret:mailgun-api-key-??????"
     ]
   }
